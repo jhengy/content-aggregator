@@ -39,6 +39,8 @@ This will scrape the main content from the specified URL and generate a summary.
   - slowness, causing timeouts
   - rate limiting causing errors
    - retry logic
+- extract date from the post
+  - llm can hallucinate date
 
 - identify the best model for the task
   - criteria
