@@ -76,21 +76,22 @@ def summarize_post(text):
             "HTTP-Referer": os.getenv('SITE_URL'),
             "X-Title": os.getenv('SITE_NAME')
         }
+        
+        prompt = """
+You are an AI assistant specialized in summarizing and extracting metadata from articles. Your task is to summarize the article and extract the publication date.
+Instructions:
+1. Carefully read the entire blog text provided.
+2. Extract the publication date as [Publication Date], if not found, return unknown
+3. Summarize article in 3-5 sentences as [Summary] and tags as [Tags] in lowercase, no special characters, comma separated
+4. Present your findings strictly following the specified format:
+<tags>[Tags]</tags>
+<date>[Publication Date]</date>
+<summary>[Summary]</summary>
 
-        prompt = """Strictly follow this format:
-<tags>comma,separated,tags</tags>
-<date>dd-mm-yyyy</date>
-<summary>3-5 sentence paragraph</summary>
-
-Text to analyze:
+Article text:
 {text}
-
-Rules:
-1. Use exact XML-like tags shown
-2. Extract only the publish date of the post and ignore other dates.If date not found, use <date>unknown</date>
-3. Summary must be plain text without markdown and enclosed within <summary></summary>
-4. Tags must be lowercase, no special characters and enclosed within <tags></tags>
-"""
+        
+        """
         print("prompt:\n", prompt.format(text=text)) if os.getenv('DEBUG') == 'true' else None
 
         payload = {
