@@ -4,8 +4,12 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from requests_html import HTMLSession
 
 load_dotenv()
+
+def deduplicate(array):
+    return list(dict.fromkeys(array))
 
 def extract_date_with_llama(html_content):
     prompt = """Analyze this HTML and find the publication date in YYYY-MM-DD format.
@@ -39,28 +43,52 @@ def extract_date_with_llama(html_content):
         print(f"AI date extraction failed: {str(e)}")
         return None
 
-def extract_posts(blog_homepage):
-    response = requests.get(blog_homepage)
-    base_domain = urlparse(blog_homepage).netloc
-
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, 'html.parser')
-        post_links = set()
-        for link in soup.find_all('a', href=True):
-            url = urljoin(blog_homepage, link['href'])
-            if urlparse(url).netloc == base_domain and url != blog_homepage:
-                post_links.add(url)
-
-        return post_links       
-    else:
-        print(f"Failed to retrieve the webpage: {response.status_code}")
+def extract_posts(root_url, css_selector=None, class_name=None, 
+                 include_patterns=None, exclude_patterns=None):
+    session = HTMLSession()
+    try:
+        response = session.get(root_url)
+        response.html.render(timeout=20, sleep=3)
+        
+        soup = BeautifulSoup(response.html.html, 'html.parser')
+        post_links = []
+        
+        # Base query for all links
+        links = soup.find_all('a', href=True)
+        
+        # Apply filters
+        if css_selector:
+            links = soup.select(css_selector)
+        elif class_name:
+            links = [link for link in links if class_name in link.get('class', [])]
+        
+        for link in links:
+            url = urljoin(root_url, link['href'])
+            
+            # Inclusion check
+            include = True
+            if include_patterns:
+                include = any(pattern in url for pattern in include_patterns)
+            
+            # Exclusion check
+            if exclude_patterns and any(pattern in url for pattern in exclude_patterns):
+                include = False
+                
+            if include:
+                post_links.append(url)
+        
+        return deduplicate(post_links)
+    except Exception as e:
+        print(f"Rendering failed: {str(e)}")
         return None
+    finally:
+        session.close()
     
     
 def filter_by_date(post_links, target_date_str):
     target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
 
-    blog_urls = set()
+    blog_urls = []
 
     # Second pass: Verify dates using AI
     for url in post_links:
@@ -72,17 +100,48 @@ def filter_by_date(post_links, target_date_str):
                     print(f"url: {url}\n ai_date: {ai_date}\n")
                     post_date = datetime.strptime(ai_date, "%Y-%m-%d").date()
                     if post_date == target_date:
-                        blog_urls.add(url)
+                        blog_urls.append(url)
         except Exception as e:
             print(f"Error processing {url}: {str(e)}")
 
-    return blog_urls
+    return deduplicate(blog_urls)
 
 def main():
-    posts = extract_posts("https://blog.pragmaticengineer.com")
-    print(posts)
-    filtered_posts = filter_by_date(posts, "2025-01-21")
-    print(filtered_posts)
+    # print("--------------------------------")
+    # pe_posts = extract_posts(
+    #     "https://blog.pragmaticengineer.com",
+    #     **
+    #     {
+    #         'include_patterns': ['https://blog.pragmaticengineer.com'],
+    #     }
+    # )
+    # print(f"pe_posts: {pe_posts}")
+    # filtered_pe_posts = filter_by_date(pe_posts, "2025-01-29")
+    # print(f"filtered_pe_posts: {filtered_pe_posts}")
+    
+    # print("--------------------------------")
+    # pe_newsletter_posts = extract_posts(
+    #     "https://newsletter.pragmaticengineer.com/archive",
+    #     **
+    #     {
+    #         'include_patterns': ['https://newsletter.pragmaticengineer.com/p/'],
+    #     }
+    # )
+    # print(f"pe_newsletter_posts: {pe_newsletter_posts}")
+    
+
+    print("--------------------------------")
+    hn_posts = extract_posts(
+        "https://hn.algolia.com/?dateRange=last24h&type=story",
+        **
+        {
+            'css_selector': 'a[href].Story_link'
+        }
+    )
+    print(f"hn_posts: {hn_posts}")
+    # filtered_hn_posts = filter_by_date(hn_posts, "2025-01-29")
+    # print(f"filtered_hn_posts: {filtered_hn_posts}")
+
 
 if __name__ == "__main__":
     main()
