@@ -1,7 +1,6 @@
-from extract_urls import extract_posts, filter_by_date
-from openrouter_api_script import scrape_article, summarize
+from scraper import scrape_article, extract_posts
+from llm import summarize_post, filter_by_date
 from dotenv import load_dotenv
-import os
 import json
 from datetime import datetime
 import os
@@ -49,7 +48,7 @@ def process_articles(root_url, target_date, limit=10):
                 
             # Generate summary
             print("Generating summary...")
-            summary = summarize(content)
+            summary = summarize_post(content)
             
             results.append({
                 "url": url,
@@ -83,4 +82,4 @@ if __name__ == "__main__":
     process_articles(
         root_url="https://hn.algolia.com/?dateRange=last24h&type=story",
         target_date="2025-01-29"
-    ) 
+    )
