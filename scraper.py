@@ -15,7 +15,7 @@ def scrape_article(url):
     session = HTMLSession()
     try:
         response = session.get(url)
-        response.html.render(timeout=20, sleep=3)
+        response.html.render(timeout=20, sleep=3) # this is run on a separate thread, causing issue with interrupt
         
         soup = BeautifulSoup(response.html.html, 'html.parser')
         

@@ -4,22 +4,17 @@ from dotenv import load_dotenv
 import json
 from datetime import datetime
 import os
-
+import time
+import sys
 load_dotenv()
 
-def process_articles(root_url, target_date, limit=10):
+def process_articles(root_url, target_date, extract_params={'css_selector': 'a[href]'}, limit=10):
     """Main workflow: Extract URLs -> Filter by date -> Process articles"""
     print(f"🚀 Starting processing for {root_url} on {target_date}")
     
     # Step 1: Extract potential post URLs
     print("\n🔍 Extracting post links...")
-    posts = extract_posts(
-            root_url,
-            **
-            {
-                'css_selector': 'a[href].Story_link'
-            }
-        )
+    posts = extract_posts(root_url, **extract_params)
     if not posts:
         print("❌ No posts found")
         return
@@ -38,8 +33,10 @@ def process_articles(root_url, target_date, limit=10):
     
     # Step 3: Process each article
     results = []
-    for idx, url in enumerate(filtered_posts, 1):
-        print(f"\n📄 Processing article {idx}/{len(filtered_posts)}: {url}")
+    n = len(filtered_posts)
+    while len(results) < n:
+        url = filtered_posts.pop(0)
+        print(f"\n📄 Processing article {url}")
         
         try:
             # Scrape article content
@@ -49,7 +46,10 @@ def process_articles(root_url, target_date, limit=10):
             # Generate summary
             print("Generating summary...")
             summary = summarize_post(content)
-            
+            if summary['summary'] is None:
+                print(f"❌ Error processing {url}: {summary}")
+                filtered_posts.append(url)
+                continue
             results.append({
                 "url": url,
                 "tags": summary['tags'],
@@ -62,10 +62,13 @@ def process_articles(root_url, target_date, limit=10):
             
         except Exception as e:
             print(f"❌ Error processing {url}: {str(e)}")
-            results.append({
-                "url": url,
-                "error": str(e)
-            })
+            # results.append({
+            #     "url": url,
+            #     "error": str(e)
+            # })
+            
+            time.sleep(30)
+            filtered_posts.append(url)
             
     # Create the output directory if it doesn't exist
     output_dir = "outputs"
@@ -84,8 +87,15 @@ def process_articles(root_url, target_date, limit=10):
     print(f"\n🎉 Done! Results saved to {filename}")
 
 if __name__ == "__main__":
-    # Example usage
-    process_articles(
-        root_url="https://hn.algolia.com/?dateRange=last24h&type=story",
-        target_date="2025-01-29"
-    )
+    try:
+        process_articles(
+            root_url="https://hn.algolia.com/?dateRange=last24h&type=story",
+            target_date="2025-01-29",
+            extract_params={  # Full configuration object
+                'css_selector': 'a[href].Story_link',
+                # Can add other extract_posts parameters here
+            }
+        )
+    except KeyboardInterrupt:
+        print("\n🛑 Script interrupted by user")
+        sys.exit(1)

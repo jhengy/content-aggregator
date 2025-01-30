@@ -122,15 +122,15 @@ Article text:
           
           # Parse structured response
           tags_match = re.search(r'<tags>(.*?)</tags>', content, re.DOTALL)
-          tags = tags_match.group(1).strip() if tags_match else 'unknown'
+          tags = tags_match.group(1).strip() if tags_match else None
           
           # Extract date
           date_match = re.search(r'<date>(.*?)</date>', content, re.DOTALL)
-          date = date_match.group(1).strip() if date_match else 'unknown'
+          date = date_match.group(1).strip() if date_match else None
           
           # Extract summary
           summary_match = re.search(r'<summary>(.*?)</summary>', content, re.DOTALL)
-          summary = summary_match.group(1).strip() if summary_match else 'unknown'
+          summary = summary_match.group(1).strip() if summary_match else None
           
           return {
               "tags": tags,
