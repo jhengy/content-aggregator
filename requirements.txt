@@ -2,4 +2,4 @@ beautifulsoup4==4.12.2
 requests-html==0.10.0
 lxml[html_clean]==5.2.1
 python-dotenv==1.0.0
-openai==1.30.0
+openai>=1.30.0
