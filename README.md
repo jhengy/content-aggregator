@@ -38,6 +38,7 @@ This will scrape the main content from the specified URL and generate a summary.
 - reliability
   - slowness, causing timeouts
   - rate limiting causing errors
+   - retry logic
 
 - identify the best model for the task
   - criteria

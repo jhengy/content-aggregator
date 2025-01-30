@@ -12,6 +12,61 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+def summarize_all(summaries):
+    """Generate an executive summary from multiple summaries using LLM"""
+    if len(summaries) == 0:
+        return "No summaries to summarize"
+
+    try:
+        combined = "\n".join(summaries)
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv('SITE_URL'),
+            "X-Title": os.getenv('SITE_NAME')
+        }
+        
+        prompt = """Generate an executive summary under 200 words from these key points:
+        Text to analyze:
+        {text}
+        
+        Rules:
+        1. Use plain text only in a single paragraph
+        2. Maintain crucial details
+        3. Avoid markdown
+        4. Keep paragraphs short
+        """
+        
+        payload = {
+            "model": os.getenv('MODEL_SUMMARIZE'),
+            "messages": [{
+                "role": "user",
+                "content": prompt.format(text=combined)
+            }]
+        }
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=60
+        )
+        
+        print("response:\n", response.json(), response.status_code) if os.getenv('DEBUG') == 'true' else None
+
+        if response.status_code == 200:
+            try:
+                content = response.json()['choices'][0]['message']['content']
+            except (KeyError, IndexError, TypeError):
+                raise Exception("Error parsing response", response.json())
+            return content
+        else:
+            raise Exception(f"API error: {response.status_code} - {response.text}")
+
+    except Exception as e:
+        print(f"Summary aggregation failed: {str(e)}")
+        return "\n".join(summaries)  # Fallback to original behavior
+
 def summarize_post(text):
     """Summarize text using OpenRouter API via direct HTTP"""
     try:
@@ -141,7 +196,7 @@ def filter_by_date(post_links, target_date_str):
 
 
 def main():
-    article = scrape_article("https://www.404media.co/openai-furious-deepseek-might-have-stolen-all-the-data-openai-stole-from-us/")
+    article = scrape_article("https://www.tomshardware.com/pc-components/hdds/german-seagate-customers-say-their-new-hard-drives-were-actually-used-resold-hdds-reportedly-used-for-tens-of-thousands-of-hours")
     summary = summarize_post(article)
     print(summary)
 

@@ -1,5 +1,5 @@
 from scraper import scrape_article, extract_posts
-from llm import summarize_post, filter_by_date
+from llm import summarize_post, filter_by_date, summarize_all
 from dotenv import load_dotenv
 import json
 from datetime import datetime
@@ -70,6 +70,12 @@ def process_articles(root_url, target_date, limit=10):
     # Create the output directory if it doesn't exist
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Generate executive summary
+    print("Generating executive summary...")
+    executive_summary = summarize_all([x['summary'] for x in results])
+    print(executive_summary)
+    
     # Save results
     filename = f"{output_dir}/results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     with open(filename, 'w') as f:
