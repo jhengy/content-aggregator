@@ -2,6 +2,7 @@
 venv/
 ENV/
 .env/
+outputs/
 
 # Environment files
 .env

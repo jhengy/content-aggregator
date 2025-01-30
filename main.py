@@ -4,10 +4,11 @@ from dotenv import load_dotenv
 import os
 import json
 from datetime import datetime
+import os
 
 load_dotenv()
 
-def process_articles(root_url, target_date):
+def process_articles(root_url, target_date, limit=10):
     """Main workflow: Extract URLs -> Filter by date -> Process articles"""
     print(f"🚀 Starting processing for {root_url} on {target_date}")
     
@@ -32,7 +33,7 @@ def process_articles(root_url, target_date):
     # if not filtered_posts:
     #     print("❌ No posts match the target date")
     #     return
-    filtered_posts = posts[:2]
+    filtered_posts = posts[:limit]
     
     print(f"🎯 Found {len(filtered_posts)} articles published on {target_date}")
     
@@ -43,24 +44,18 @@ def process_articles(root_url, target_date):
         
         try:
             # Scrape article content
+            print("Scrape content...")
             content = scrape_article(url)
-            if "error" in content.lower():
-                raise ValueError(content)
                 
             # Generate summary
+            print("Generating summary...")
             summary = summarize(content)
-            
-            # Parse summary components
-            summary_lines = summary.split('\n')
-            tags = summary_lines[0].replace("Tags:", "").strip() if len(summary_lines) > 0 else ""
-            date = summary_lines[1].replace("Published Date:", "").strip() if len(summary_lines) > 1 else ""
-            bullets = '\n'.join(summary_lines[2:]) if len(summary_lines) > 2 else ""
             
             results.append({
                 "url": url,
-                "tags": tags,
-                "date": date,
-                "summary": bullets,
+                "tags": summary['tags'],
+                "date": summary['date'],
+                "summary": summary['summary'],
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -72,9 +67,12 @@ def process_articles(root_url, target_date):
                 "url": url,
                 "error": str(e)
             })
-    
+            
+    # Create the output directory if it doesn't exist
+    output_dir = "outputs"
+    os.makedirs(output_dir, exist_ok=True)
     # Save results
-    filename = f"results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    filename = f"{output_dir}/results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     with open(filename, 'w') as f:
         json.dump(results, f, indent=2)
         

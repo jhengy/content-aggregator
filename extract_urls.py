@@ -5,13 +5,11 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from requests_html import HTMLSession
+from utils import deduplicate
 
 load_dotenv()
 
-def deduplicate(array):
-    return list(dict.fromkeys(array))
-
-def extract_date_with_llama(html_content):
+def extract_date_llm(html_content):
     prompt = """Analyze this HTML and find the publication date in YYYY-MM-DD format.
     Look for dates in article headers, meta tags, or visible date elements, exclude dates in the article body
     Return ONLY the date in ISO format within curly braces or 'null' if not found."""
@@ -27,7 +25,7 @@ def extract_date_with_llama(html_content):
             "https://openrouter.ai/api/v1/chat/completions",
             headers=headers,
             json={
-                "model": "meta-llama/llama-3-70b-instruct:free",
+                "model": os.getenv('MODEL_EXTRACT_DATE'),
                 "messages": [{
                     "role": "user",
                     "content": f"{prompt}\n\n{html_content[:8000]}"
@@ -90,14 +88,13 @@ def filter_by_date(post_links, target_date_str):
 
     blog_urls = []
 
-    # Second pass: Verify dates using AI
     for url in post_links:
         try:
             post_response = requests.get(url, timeout=10)
             if post_response.status_code == 200:
-                ai_date = extract_date_with_llama(post_response.text)
+                ai_date = extract_date_llm(post_response.text)
                 if ai_date and ai_date != 'null':
-                    print(f"url: {url}\n ai_date: {ai_date}\n")
+                    print(f"url: {url}\n ai_date: {ai_date}\n") if os.getenv('DEBUG') == 'true' else None
                     post_date = datetime.strptime(ai_date, "%Y-%m-%d").date()
                     if post_date == target_date:
                         blog_urls.append(url)
