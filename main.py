@@ -27,7 +27,7 @@ async def extract_articles(source_url, extract_type, extract_params={'css_select
     
     if not articles:
         print(f"❌ No posts found from {source_url}")
-        return
+        return []
         
     print(f"📚 Found {len(articles[:limit])} potential articles from {source_url} with limit {limit}")
     return articles[:limit]
