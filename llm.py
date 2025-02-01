@@ -1,16 +1,9 @@
 from openai import OpenAI
-import requests
-from bs4 import BeautifulSoup
-import os
 from dotenv import load_dotenv
-from requests_html import HTMLSession
-import re
-from scraper import scrape_article
-from utils import deduplicate
 from datetime import datetime
 import asyncio
 from gemini_api import GeminiAPI
-
+import re
 # Load environment variables
 load_dotenv()
 gemini = GeminiAPI()

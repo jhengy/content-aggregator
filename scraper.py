@@ -3,13 +3,10 @@ from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
 from requests_html import AsyncHTMLSession
-import re
 from utils import deduplicate
 from urllib.parse import urljoin
 import asyncio
-from playwright.async_api import async_playwright
 import feedparser
-from datetime import datetime
 import time
 
 # Load environment variables

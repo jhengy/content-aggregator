@@ -26,10 +26,10 @@ async def extract_articles(source_url, extract_type, extract_params={'css_select
         raise ValueError(f"Invalid extract type: {extract_type}")
     
     if not articles:
-        print("❌ No posts found")
+        print(f"❌ No posts found from {source_url}")
         return
         
-    print(f"📚 Found {len(articles[:limit])} potential articles with limit {limit}")
+    print(f"📚 Found {len(articles[:limit])} potential articles from {source_url} with limit {limit}")
     return articles[:limit]
 
 async def process_articles(filtered_articles):
@@ -107,30 +107,27 @@ async def gather_articles(total_limit=500):
         }
     ]
     
-    article_tasks_with_limit = [
-        {
-            **task,
-            'limit': int(total_limit / len(article_tasks))
-        }
-        for task in article_tasks
-    ]
-    
     # Create all coroutines
-    coroutines = [extract_articles(**task) for task in article_tasks_with_limit]
+    coroutines = [extract_articles(**task) for task in article_tasks]
     
     # Run all tasks concurrently
     results = await asyncio.gather(*coroutines)
-    
+    flattened_results = [item for sublist in results for item in sublist]
+  
+    # distribute the limit across all sources by the proportion of the number of articles found
+    weighted_results = [result[:(int(len(result) / len(flattened_results) * total_limit) or 1)] for result in results]
+
     # Combine and deduplicate
     combined = deduplicate(
-        [item for sublist in results for item in sublist]
+        [item for articles in weighted_results for item in articles]
     )
     
+    print(f"🎉 Done! Found {len(combined)} articles in total: {combined}")
     return combined[:total_limit]
 
 if __name__ == "__main__":
     try:
-        articles = asyncio.run(gather_articles())
+        articles = asyncio.run(gather_articles(int(os.getenv('ARTICLES_LIMIT'))))
         asyncio.run(process_articles(articles))
     except KeyboardInterrupt:
         print("\n🛑 Script interrupted by user")

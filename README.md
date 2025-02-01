@@ -15,15 +15,12 @@ A Python tool that scrapes web articles and generates summaries using the OpenRo
    pip install -r requirements.txt
    ```
 4. Copy `.env.example` to `.env` and fill in your credentials:
-   - OPENROUTER_API_KEY: Your OpenRouter API key
-   - SITE_URL: Your site URL
-   - SITE_NAME: Your site name
 
 ## Usage
 
 Run the script:
 ```bash
-python openrouter_api_script.py
+python main.py
 ```
 
 This will scrape the main content from the specified URL and generate a summary.
