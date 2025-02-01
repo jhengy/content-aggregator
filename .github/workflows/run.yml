@@ -37,7 +37,7 @@ jobs:
           GEMINI_MODEL_SUMMARIZE: ${{ secrets.GEMINI_MODEL_SUMMARIZE }}
           GEMINI_MODEL_DATE_EXTRACT: ${{ secrets.GEMINI_MODEL_DATE_EXTRACT }}
           DEBUG: "false"
-          ARTICLES_LIMIT: "5"
+          ARTICLES_LIMIT: "500"
         run: python main.py 
 
       - name: Upload output files
