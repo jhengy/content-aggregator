@@ -50,7 +50,7 @@ jobs:
           retention-days: 1
 
       - name: Create GitHub Issue
-        if: always()  # Run even if previous steps fail
+        if: success()  # Only run if previous steps succeeded
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
