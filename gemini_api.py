@@ -20,7 +20,7 @@ class GeminiAPI:
                 prompt,
                 generation_config=genai.types.GenerationConfig(
                     temperature=kwargs.get('temperature', 0.2),
-                    max_output_tokens=kwargs.get('max_tokens', 1000)
+                    max_output_tokens=kwargs.get('max_tokens')
                 )
             )
             print(f"Response: {response.text}") if os.getenv('DEBUG') == 'true' else None
