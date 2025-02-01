@@ -7,13 +7,15 @@ import re
 load_dotenv()
 gemini = GeminiAPI()
 
+UNKNOWN = ""
+
 async def summarize_post(text: str) -> dict:
     """Handle empty content gracefully"""
     if not text.strip():
         return {
-            "tags": ["error"],
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "summary": "Content unavailable"
+            "tags": UNKNOWN,
+            "date": UNKNOWN,
+            "summary": "empty content"
         }
         
     # Add null check before slicing
@@ -24,11 +26,15 @@ async def summarize_post(text: str) -> dict:
 Your task is to summarize the article and extract the publication date.
 Instructions:
 1. Carefully read the entire blog text provided.
-2. Extract the publication date as [Publication Date], if not found, return unknown
-3. Summarize article in 3-5 sentences as [Summary] and tags as [Tags] in lowercase, no special characters, comma separated
-4. Present your findings strictly following the specified format:
+2. Extract the publication date as [Publication Date], if not found, return unknown 
+3. Extract the author as [Author], if not found, return unknown
+4. Extract the title as [Title], if not found, return unknown
+5. Summarize article in 3-5 sentences as [Summary] and tags as [Tags] in lowercase, no special characters, comma separated
+6. Present your findings strictly following the specified format:
 <tags>[Tags]</tags>
 <date>[Publication Date]</date>
+<author>[Author]</author>
+<title>[Title]</title>
 <summary>[Summary]</summary>
 
 Article text:
@@ -45,8 +51,8 @@ Article text:
     except Exception as e:
         print(f"Summarization error: {str(e)}")
         return {
-            "tags": None,
-            "date": None,
+            "tags": UNKNOWN,
+            "date": UNKNOWN,
             "summary": truncated[:500]  # Fallback
         }
 
@@ -55,12 +61,14 @@ def parse_response(response: str) -> dict:
     return {
         "tags": extract_tag(response, "tags"),
         "date": extract_tag(response, "date"),
+        "author": extract_tag(response, "author"),
+        "title": extract_tag(response, "title"),
         "summary": extract_tag(response, "summary")
     }
 
 def extract_tag(text: str, tag: str) -> str:
     match = re.search(f'<{tag}>(.*?)</{tag}>', text, re.DOTALL)
-    return match.group(1).strip() if match else None
+    return match.group(1).strip() if match else UNKNOWN
 
 async def summarize_all(summaries: list) -> str:
     """Generate executive summary from multiple summaries"""

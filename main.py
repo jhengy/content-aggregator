@@ -19,7 +19,7 @@ async def extract_articles(source_url, extract_type, extract_params={'css_select
         current_time = time.time()
         one_day_ago = current_time - 86400
         articles = await extract_from_rss(source_url)
-        articles = [x['link'] for x in articles if x['publish_at'] > one_day_ago]
+        articles = [x for x in articles if x['publish_at'] > one_day_ago]
     elif extract_type == 'index':
         articles = await extract_from_index(source_url, **extract_params)
     else:
@@ -32,14 +32,16 @@ async def extract_articles(source_url, extract_type, extract_params={'css_select
     print(f"📚 Found {len(articles[:limit])} potential articles from {source_url} with limit {limit}")
     return articles[:limit]
 
-async def process_articles(filtered_articles):
+async def process_articles(articles):
     results = []
-    n = len(filtered_articles)
-    while len(results) < n and len(filtered_articles) > 0:
-        url = filtered_articles.pop(0)
+    n = len(articles)
+    while len(results) < n and len(articles) > 0:
+        article = articles.pop(0)
+        url = article['url']
         print(f"\n📄 Processing article {url}")
         
         try:
+            # TODO: support for pdf
             # Scrape article content
             print("Scrape content...")
             content = await scrape_article(url)
@@ -52,13 +54,15 @@ async def process_articles(filtered_articles):
             summary = await summarize_post(content)
             if summary['summary'] is None:
                 print(f"❌ Error processing {url}: {summary}")
-                filtered_articles.append(url)
+                articles.append(article)
                 continue
             results.append({
                 "url": url,
                 "tags": summary['tags'],
                 "date": summary['date'],
                 "summary": summary['summary'],
+                "author": article['author'] or summary['author'],
+                "title": article['title'] or summary['title'],
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -66,13 +70,9 @@ async def process_articles(filtered_articles):
             
         except Exception as e:
             print(f"❌ Error processing {url}: {str(e)}")
-            # results.append({
-            #     "url": url,
-            #     "error": str(e)
-            # })
-            
-            time.sleep(30)
-            filtered_articles.append(url)
+            # if rate limited, wait and try again
+            time.sleep(15)
+            articles.append(article)
             
     # Create the output directory if it doesn't exist
     output_dir = "outputs"
@@ -119,10 +119,11 @@ async def gather_articles(total_limit=500):
 
     # Combine and deduplicate
     combined = deduplicate(
-        [item for articles in weighted_results for item in articles]
+        [item for articles in weighted_results for item in articles],
+        key_func=lambda x: x['url']
     )
     
-    print(f"🎉 Done! Found {len(combined)} articles in total: {combined}")
+    print(f"🎉 Done! Found {len(combined)} articles in total: {combined} out of limit {total_limit}")
     return combined[:total_limit]
 
 if __name__ == "__main__":

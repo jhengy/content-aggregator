@@ -2,8 +2,9 @@ import requests
 from datetime import datetime
 import os
 
-def deduplicate(array):
-    return list(dict.fromkeys(array))
+def deduplicate(arr, key_func=lambda x: x):
+    seen = set()
+    return [item for item in arr if (key := key_func(item)) not in seen and not seen.add(key)]
 
 
 async def filter_by_date(post_links, target_date_str, date_extractor):

@@ -12,6 +12,8 @@ import time
 # Load environment variables
 load_dotenv()
 
+UNKNOWN = ""
+
 # TODO: manage session creation and closing at the top level, maybe creating a class to encapsulate the session
 async def scrape_article(url):
     """Async scraping with proper JS rendering"""
@@ -80,7 +82,6 @@ async def extract_from_index(root_url, css_selector=None, class_name=None,
         await response.html.arender(timeout=10, sleep=3)
         
         soup = BeautifulSoup(response.html.html, 'html.parser')
-        post_links = []
         
         # Base query for all links
         links = soup.find_all('a', href=True)
@@ -91,6 +92,7 @@ async def extract_from_index(root_url, css_selector=None, class_name=None,
         elif class_name:
             links = [link for link in links if class_name in link.get('class', [])]
         
+        post_links = []
         for link in links:
             url = urljoin(root_url, link['href'])
             
@@ -104,9 +106,14 @@ async def extract_from_index(root_url, css_selector=None, class_name=None,
                 include = False
                 
             if include:
-                post_links.append(url)
+                post_links.append({
+                    'url': url,
+                    'publish_at': UNKNOWN,
+                    'author': UNKNOWN,
+                    'title': UNKNOWN,
+                })
         
-        return deduplicate(post_links)
+        return post_links
     except Exception as e:
         print(f"Rendering failed: {str(e)}")
         return None
@@ -124,7 +131,7 @@ async def extract_from_rss(rss_url):
             
             for entry in feed.entries:
                 # Get absolute URL
-                link = urljoin(rss_url, entry.link) if entry.link else None
+                url = urljoin(rss_url, entry.link) if entry.link else None
                 
                 # Parse date from multiple possible fields
                 date_fields = [
@@ -137,10 +144,12 @@ async def extract_from_rss(rss_url):
                     None
                 )
                 
-                if link:  # Only include entries with valid links
+                if url:  # Only include entries with valid links
                     items.append({
-                        'link': link,
-                        'publish_at': pub_date  # Now stores epoch timestamp
+                        'url': url,
+                        'publish_at': pub_date,  # Now stores epoch timestamp
+                        'author': entry.get('author') or UNKNOWN,
+                        'title': entry.get('title') or UNKNOWN
                     })
                     
             return items
