@@ -30,7 +30,8 @@ HEADERS = {
 }
 
 # TODO: manage session creation and closing at the top level, maybe creating a class to encapsulate the session
-# TODO: see if changing to production grade browser automation tools such as playwright or puppeteer would be better in (1) performance (2) reliability (counter measure for anti-scraping measures)
+# TODO: see if changing to production grade browser automation tools such as playwright or puppeteer would be better in (1) performance (2) reliability (counter measure for anti-scraping measures) e.g. Enable JavaScript and cookies to continue 
+
 async def scrape_article(url):
     """Async scraping with support for HTML articles and PDF documents"""
     session = AsyncHTMLSession()
