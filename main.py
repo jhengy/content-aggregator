@@ -47,7 +47,6 @@ async def process_articles(articles):
         
         try:
             # TODO: support for pdf
-            # Scrape article content
             print("Scrape content...")
             content = await scrape_article(url)
             if not content:
@@ -62,16 +61,17 @@ async def process_articles(articles):
                 if url not in already_retried:
                     already_retried.add(url)
                     articles.append(article)
-                continue
-            results.append({
-                "url": url,
-                "tags": summary.get('tags'),
-                "date": summary.get('date'),
-                "summary": summary.get('summary'),
-                "author": article.get('author') or summary.get('author'),
-                "title": article.get('title') or summary.get('title'),
-                "timestamp": datetime.now().isoformat()
-            })
+                    continue
+            else:
+                results.append({
+                    "url": url,
+                    "tags": summary.get('tags'),
+                    "date": summary.get('date'),
+                    "summary": summary.get('summary'),
+                    "author": article.get('author') or summary.get('author'),
+                    "title": article.get('title') or summary.get('title'),
+                    "timestamp": datetime.now().isoformat()
+                })
             
             print(f"✅ Successfully processed: {url}")
             
