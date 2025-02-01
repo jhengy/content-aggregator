@@ -164,6 +164,7 @@ async def gather_articles(total_limit=500):
     flattened_results = [item for sublist in results for item in sublist]
   
     # distribute the limit across all sources by the proportion of the number of articles found
+    # TODO: there's a chance that the total number exceeds the limit, need to handle this
     weighted_results = [result[:(int(len(result) / len(flattened_results) * total_limit) or 1)] for result in results]
 
     # Combine and deduplicate
