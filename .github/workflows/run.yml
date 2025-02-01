@@ -55,11 +55,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Combine output files into markdown
-          echo "## Daily Content Summary - $(date +'%Y-%m-%d')" > issue_body.md
-          echo "### Articles Processed" >> issue_body.md
-          jq -r '.[] | "- [\(.url)]: \(.summary)"' outputs/*.json >> issue_body.md 2>/dev/null || echo "No articles processed today" >> issue_body.md
-          echo "\n### Executive Summary" >> issue_body.md
-          cat outputs/*_summary.txt >> issue_body.md 2>/dev/null || echo "No summary generated" >> issue_body.md
+          echo -e "# 📰 Daily Content Summary - $(date +'%Y-%m-%d')" > issue_body.md
+          echo -e "### Articles Processed" >> issue_body.md
+          jq -r '.[] | "- [📄](\(.url)) \(.summary)  🏷️\(.tags) \n"' outputs/*.json >> issue_body.md 2>/dev/null || echo "No articles processed today" >> issue_body.md
+          echo -e "---\n### Executive Summary" >> issue_body.md
+          echo -e "\n$(cat outputs/*_summary.txt 2>/dev/null || echo 'No summary generated')\n" >> issue_body.md
+          echo -e "---\n*🤖 Automated Summary*" >> issue_body.md
+   
+          cat issue_body.md
           
           # Create issue using GitHub CLI
           gh issue create \
