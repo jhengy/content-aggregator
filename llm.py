@@ -50,11 +50,7 @@ Article text:
         return parse_response(response)
     except Exception as e:
         print(f"Summarization error: {str(e)}")
-        return {
-            "tags": UNKNOWN,
-            "date": UNKNOWN,
-            "summary": truncated[:500]  # Fallback
-        }
+        raise e
 
 def parse_response(response: str) -> dict:
     """Parse the XML-like response format"""

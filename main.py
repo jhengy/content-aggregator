@@ -19,7 +19,7 @@ async def extract_articles(source_url, extract_type, extract_params={'css_select
         current_time = time.time()
         one_day_ago = current_time - 86400
         articles = await extract_from_rss(source_url)
-        articles = [x for x in articles if x['publish_at'] > one_day_ago]
+        articles = [x for x in articles if x.get('publish_at', 0) > one_day_ago]
     elif extract_type == 'index':
         articles = await extract_from_index(source_url, **extract_params)
     else:
@@ -37,7 +37,12 @@ async def process_articles(articles):
     n = len(articles)
     while len(results) < n and len(articles) > 0:
         article = articles.pop(0)
-        url = article['url']
+        url = article.get('url')
+        
+        if not url:
+            print(f"⚠️ Empty URL for {article}, skipping")
+            continue
+        
         print(f"\n📄 Processing article {url}")
         
         try:
@@ -52,17 +57,17 @@ async def process_articles(articles):
             # Generate summary
             print("Generating summary...")
             summary = await summarize_post(content)
-            if summary['summary'] is None:
+            if summary.get('summary') is None:
                 print(f"❌ Error processing {url}: {summary}")
                 articles.append(article)
                 continue
             results.append({
                 "url": url,
-                "tags": summary['tags'],
-                "date": summary['date'],
-                "summary": summary['summary'],
-                "author": article['author'] or summary['author'],
-                "title": article['title'] or summary['title'],
+                "tags": summary.get('tags'),
+                "date": summary.get('date'),
+                "summary": summary.get('summary'),
+                "author": article.get('author') or summary.get('author'),
+                "title": article.get('title') or summary.get('title'),
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -85,7 +90,7 @@ async def process_articles(articles):
         
     # Generate executive summary
     print("Generating executive summary...")
-    executive_summary = await summarize_all([x['summary'] for x in results])
+    executive_summary = await summarize_all([x.get('summary') for x in results])
     summary_filename = f"{output_dir}/{file_prefix}_summary.txt"
     with open(summary_filename, 'w') as f:
         f.write(executive_summary)
@@ -160,7 +165,7 @@ async def gather_articles(total_limit=500):
     # Combine and deduplicate
     combined = deduplicate(
         [item for articles in weighted_results for item in articles],
-        key_func=lambda x: x['url']
+        key_func=lambda x: x.get('url')
     )
     
     print(f"🎉 Done! Found {len(combined)} articles in total: {combined} out of limit {total_limit}")
