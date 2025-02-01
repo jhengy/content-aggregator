@@ -59,10 +59,12 @@ This will scrape the main content from the specified URL and generate a summary.
     - Llama 3.2 11B Vision Instruct (free)
 
 - free providers
-  - google ai studio:https://ai.google.dev/pricing#1_5flash
-    - 15 RPM (requests per minute)
-    - 1 million TPM (tokens per minute)
-    - 1,500 RPD (requests per day)
+  - google ai studio
+    - https://ai.google.dev/gemini-api/docs/models/gemini
+    - https://ai.google.dev/pricing#1_5flash
+      - 15 RPM (requests per minute)
+      - 1 million TPM (tokens per minute)
+      - 1,500 RPD (requests per day)
   - OpenRouter: https://openrouter.ai/docs/limits
     - Free limit: If you are using a free model variant (with an ID ending in :free), then you will be limited to 20 requests per minute and 200 requests per day.
   - huggings face serverless inference api

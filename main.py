@@ -1,20 +1,22 @@
 from scraper import scrape_article, extract_posts
-from llm import summarize_post, filter_by_date, summarize_all
+from llm import summarize_post, summarize_all
 from dotenv import load_dotenv
 import json
 from datetime import datetime
 import os
 import time
 import sys
+import asyncio
+
 load_dotenv()
 
-def process_articles(root_url, target_date, extract_params={'css_selector': 'a[href]'}, limit=10):
+async def process_articles(root_url, target_date, extract_params={'css_selector': 'a[href]'}, limit=10):
     """Main workflow: Extract URLs -> Filter by date -> Process articles"""
     print(f"🚀 Starting processing for {root_url} on {target_date}")
     
     # Step 1: Extract potential post URLs
     print("\n🔍 Extracting post links...")
-    posts = extract_posts(root_url, **extract_params)
+    posts = await extract_posts(root_url, **extract_params)
     if not posts:
         print("❌ No posts found")
         return
@@ -34,18 +36,21 @@ def process_articles(root_url, target_date, extract_params={'css_selector': 'a[h
     # Step 3: Process each article
     results = []
     n = len(filtered_posts)
-    while len(results) < n:
+    while len(results) < n and len(filtered_posts) > 0:
         url = filtered_posts.pop(0)
         print(f"\n📄 Processing article {url}")
         
         try:
             # Scrape article content
             print("Scrape content...")
-            content = scrape_article(url)
+            content = await scrape_article(url)
+            if not content:
+                print(f"⚠️ Empty content for {url}, skipping")
+                continue
                 
             # Generate summary
             print("Generating summary...")
-            summary = summarize_post(content)
+            summary = await summarize_post(content)
             if summary['summary'] is None:
                 print(f"❌ Error processing {url}: {summary}")
                 filtered_posts.append(url)
@@ -76,7 +81,7 @@ def process_articles(root_url, target_date, extract_params={'css_selector': 'a[h
     
     # Generate executive summary
     print("Generating executive summary...")
-    executive_summary = summarize_all([x['summary'] for x in results])
+    executive_summary = await summarize_all([x['summary'] for x in results])
     print(executive_summary)
     
     # Save results
@@ -88,14 +93,15 @@ def process_articles(root_url, target_date, extract_params={'css_selector': 'a[h
 
 if __name__ == "__main__":
     try:
-        process_articles(
+        asyncio.run(process_articles(
             root_url="https://hn.algolia.com/?dateRange=last24h&type=story",
             target_date="2025-01-29",
             extract_params={  # Full configuration object
                 'css_selector': 'a[href].Story_link',
                 # Can add other extract_posts parameters here
-            }
-        )
+            },
+            limit=3
+        ))
     except KeyboardInterrupt:
         print("\n🛑 Script interrupted by user")
         sys.exit(1)
