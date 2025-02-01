@@ -77,18 +77,20 @@ async def process_articles(filtered_articles):
     # Create the output directory if it doesn't exist
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
+    file_prefix = f"results_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
+    json_filename = f"{output_dir}/{file_prefix}.json"
+    with open(json_filename, 'w') as f:
+        json.dump(results, f, indent=2)
+        
     # Generate executive summary
     print("Generating executive summary...")
     executive_summary = await summarize_all([x['summary'] for x in results])
-    print(executive_summary)
-    
-    # Save results
-    filename = f"{output_dir}/results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(filename, 'w') as f:
-        json.dump(results, f, indent=2)
+    summary_filename = f"{output_dir}/{file_prefix}_summary.txt"
+    with open(summary_filename, 'w') as f:
+        f.write(executive_summary)
         
-    print(f"\n🎉 Done! Results saved to {filename}")
+    print(f"\n🎉 Done! Results saved to {json_filename} and {summary_filename}")
 
 async def gather_articles(total_limit=500):
     """Run multiple extraction tasks concurrently and combine results"""
