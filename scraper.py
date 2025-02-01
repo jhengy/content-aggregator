@@ -10,6 +10,7 @@ import feedparser
 import time
 from PyPDF2 import PdfReader
 import io
+from playwright.async_api import async_playwright
 
 # Load environment variables
 load_dotenv()
@@ -32,40 +33,48 @@ HEADERS = {
 # TODO: manage session creation and closing at the top level, maybe creating a class to encapsulate the session
 # TODO: see if changing to production grade browser automation tools such as playwright or puppeteer would be better in (1) performance (2) reliability (counter measure for anti-scraping measures) e.g. Enable JavaScript and cookies to continue 
 
-async def scrape_article(url):
-    """Async scraping with support for HTML articles and PDF documents"""
-    session = AsyncHTMLSession()
-    try:
-        response = await session.get(
-            url,
-            timeout=SESSION_GET_TIMEOUT,
-            headers=HEADERS
+async def get_page_html(url, wait_until='domcontentloaded', timeout=SESSION_GET_TIMEOUT):
+    """Shared Playwright helper to get rendered HTML"""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=['--disable-blink-features=AutomationControlled']
         )
+        try:
+            context = await browser.new_context(
+                user_agent=HEADERS['User-Agent'],
+                viewport={'width': 1920, 'height': 1080},
+                java_script_enabled=True
+            )
+            page = await context.new_page()
+            await page.goto(url, wait_until=wait_until, timeout=timeout * 1000)
+            return await page.content()
+        finally:
+            await browser.close()
 
-        # TODO: Ideally it should be left to the LLM to handle PDF due to its multi-model capabilities
+async def scrape_article(url):
+    """Scrape articles using Playwright with improved PDF handling"""
+    try:
         if url.lower().endswith('.pdf'):
+            session = AsyncHTMLSession()
+            response = await session.get(
+                url,
+                timeout=SESSION_GET_TIMEOUT,
+                headers=HEADERS
+            )
             pdf_stream = io.BytesIO(response.content)
             reader = PdfReader(pdf_stream)
             text = '\n'.join([page.extract_text() for page in reader.pages])
             return text
         
-        await response.html.arender(
-            timeout=SESSION_RENDER_TIMEOUT,
-            sleep=SESSION_RENDER_SLEEP,
-            retries=SESSION_RENDER_RETRIES
-        )
-
-        # Clean content before parsing
-        cleaned_html = clean_content(response.html.html)
+        html = await get_page_html(url)
         
-        # Parse with optimized settings
-        soup = BeautifulSoup(cleaned_html, 'html.parser')
-        
+        # Sanitize HTML for content extraction
+        soup = BeautifulSoup(html, 'html.parser')
         # Remove non-content elements
         for tag in soup(['script', 'style', 'nav', 'header', 'footer', 
                         'aside', 'form', 'svg', 'link', 'meta']):
             tag.decompose()
-            
         # Find main content using multiple heuristics
         main_content = (
             soup.find('article') or 
@@ -74,17 +83,15 @@ async def scrape_article(url):
             soup.find(class_=['article', 'content', 'post']) or 
             soup.body
         )
-        
-        # Final text cleaning
         text = main_content.get_text(separator='\n', strip=True)
-        print(f"=== extracted text ===\n {text} \n=== end of extracted text ===\n") if os.getenv('DEBUG') == 'true' else None
-        return '\n'.join(line.strip() for line in text.split('\n') if line.strip())
+        extracted_text = '\n'.join(line.strip() for line in text.split('\n') if line.strip())
         
+        print(f"=== extracted text ===\n {extracted_text} \n=== end of extracted text ===\n") if os.getenv('DEBUG') == 'true' else None
+        return extracted_text
+
     except Exception as e:
         print(f"Scraping error: {str(e)}")
         return ""
-    finally:
-        await session.close()
 
 def clean_content(html):
     """Fast HTML sanitization"""
@@ -94,26 +101,15 @@ def clean_content(html):
 
 async def extract_from_index(root_url, css_selector=None, class_name=None, 
                  include_patterns=None, exclude_patterns=None):
-    session = AsyncHTMLSession()
     try:
-        response = await session.get(root_url, timeout=SESSION_GET_TIMEOUT, headers=HEADERS)
-        await response.html.arender(
-            timeout=SESSION_RENDER_TIMEOUT,
-            sleep=SESSION_RENDER_SLEEP,
-            retries=SESSION_RENDER_RETRIES
-        )
+        html = await get_page_html(root_url)
         
-        soup = BeautifulSoup(response.html.html, 'html.parser')
-        
-        # Base query for all links
+        soup = BeautifulSoup(html, 'html.parser')
         links = soup.find_all('a', href=True)
-        
-        # Apply filters
         if css_selector:
             links = soup.select(css_selector)
         elif class_name:
             links = [link for link in links if class_name in link.get('class', [])]
-        
         post_links = []
         for link in links:
             url = urljoin(root_url, link['href'])
@@ -136,12 +132,11 @@ async def extract_from_index(root_url, css_selector=None, class_name=None,
                 })
         
         return post_links
+
     except Exception as e:
-        print(f"Rendering failed: {str(e)}")
-        return None
-    finally:
-        await session.close()
-    
+        print(f"Index extraction failed: {str(e)}")
+        return []
+
 async def extract_from_rss(rss_url):
     """Extract RSS feed items with links and dates"""
     session = AsyncHTMLSession()

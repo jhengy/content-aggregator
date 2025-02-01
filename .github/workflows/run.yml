@@ -31,6 +31,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps
+
       - name: Run summarizer
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
