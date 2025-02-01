@@ -34,8 +34,8 @@ async def extract_articles(source_url, extract_type, extract_params={'css_select
 
 async def process_articles(articles):
     results = []
-    n = len(articles)
-    while len(results) < n and len(articles) > 0:
+    already_retried = set()
+    while len(articles) > 0:
         article = articles.pop(0)
         url = article.get('url')
         
@@ -59,7 +59,9 @@ async def process_articles(articles):
             summary = await summarize_post(content)
             if summary.get('summary') is None:
                 print(f"❌ Error processing {url}: {summary}")
-                articles.append(article)
+                if url not in already_retried:
+                    already_retried.add(url)
+                    articles.append(article)
                 continue
             results.append({
                 "url": url,
@@ -77,7 +79,9 @@ async def process_articles(articles):
             print(f"❌ Error processing {url}: {str(e)}")
             # if rate limited, wait and try again
             time.sleep(15)
-            articles.append(article)
+            if url not in already_retried:
+                already_retried.add(url)
+                articles.append(article)
             
     # Create the output directory if it doesn't exist
     output_dir = "outputs"
