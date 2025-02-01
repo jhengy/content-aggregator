@@ -14,17 +14,46 @@ A Python tool that scrapes web articles and generates summaries using the OpenRo
    ```bash
    pip install -r requirements.txt
    ```
-4. Copy `.env.example` to `.env` and fill in your credentials:
+4. Configure environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` with:
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   GEMINI_MODEL_SUMMARIZE=gemini-1.5-pro-latest
+   GEMINI_MODEL_DATE_EXTRACT=gemini-1.5-pro-latest
+   ```
 
 ## Usage
 
-Run the script:
+### Local Execution
 ```bash
 python main.py
 ```
 
 This will scrape the main content from the specified URL and generate a summary.
 
+### Automated Daily Summaries
+The system includes GitHub Actions configured to:
+- Run daily at 08:00 UTC
+- Process up to 5 articles
+- Create GitHub issues with summaries
+- Store results as workflow artifacts
+
+Output files will be created in:
+- `outputs/results_*.json`: Full results in JSON format
+- `outputs/results_*_summary.txt`: Executive summary text file
+
+## CI/CD Requirements
+For GitHub Actions execution, ensure these repository settings:
+1. Under Settings > Actions > General:
+   - Workflow permissions: "Read and write permissions"
+   - Check "Allow GitHub Actions to create and approve pull requests"
+2. Add these secrets:
+   - GEMINI_API_KEY
+   - GEMINI_MODEL_SUMMARIZE
+   - GEMINI_MODEL_DATE_EXTRACT
 
 ## Challenges
 - different sources have different ways of getting the post links
