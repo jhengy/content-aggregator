@@ -102,7 +102,47 @@ async def gather_articles(total_limit=500):
             'extract_params': {'css_selector': 'a[href].Story_link'},
         },
         {
+            'source_url': "https://newsletter.pragmaticengineer.com/feed",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://architecturenotes.co/feed",
+            'extract_type': 'rss',
+        },
+        {
             'source_url': "https://simonwillison.net/atom/everything/",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://airbnb.tech/feed/",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://engineering.fb.com/feed/",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://www.allthingsdistributed.com/atom.xml",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://hackernoon.com/feed",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://cacm.acm.org/section/blogcacm/feed/",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://www.jeremykun.com/index.xml",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://austinhenley.com/blog/feed.rss",
+            'extract_type': 'rss',
+        },
+        {
+            'source_url': "https://www.techmeme.com/feed.xml",
             'extract_type': 'rss',
         }
     ]
