@@ -40,7 +40,7 @@ async def process_articles(articles):
         url = article.get('url')
         
         if not url:
-            print(f"⚠️ Empty URL for {article}, skipping")
+            print(f"⚠️ Empty URL for {article} - skipping")
             continue
         
         print(f"\n📄 Processing article {url}")
@@ -51,14 +51,14 @@ async def process_articles(articles):
             print("Scrape content...")
             content = await scrape_article(url)
             if not content:
-                print(f"⚠️ Empty content for {url}, skipping")
+                print(f"⚠️ Empty content for {url} - skipping")
                 continue
                 
             # Generate summary
             print("Generating summary...")
             summary = await summarize_post(content)
             if summary.get('summary') is None:
-                print(f"❌ Error processing {url}: {summary}")
+                print(f"❌ Error processing {url} - returned empty summary")
                 if url not in already_retried:
                     already_retried.add(url)
                     articles.append(article)
@@ -76,8 +76,8 @@ async def process_articles(articles):
             print(f"✅ Successfully processed: {url}")
             
         except Exception as e:
-            print(f"❌ Error processing {url}: {str(e)}")
-            # if rate limited, wait and try again
+            print(f"❌ Error processing {url} - {str(e)}")
+            # assume random error due to say rate limiting, wait and try again
             time.sleep(15)
             if url not in already_retried:
                 already_retried.add(url)
@@ -172,7 +172,7 @@ async def gather_articles(total_limit=500):
         key_func=lambda x: x.get('url')
     )
     
-    print(f"🎉 Done! Found {len(combined)} articles in total: {combined} out of limit {total_limit}")
+    print(f"🎉 Done! Out of limit={total_limit}, found {len(combined)} articles in total: {combined} ")
     return combined[:total_limit]
 
 if __name__ == "__main__":
