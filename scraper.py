@@ -14,6 +14,7 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+# TODO: manage session creation and closing at the top level, maybe creating a class to encapsulate the session
 async def scrape_article(url):
     """Async scraping with proper JS rendering"""
     session = AsyncHTMLSession()

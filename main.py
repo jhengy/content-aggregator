@@ -10,34 +10,28 @@ import asyncio
 
 load_dotenv()
 
-async def process_articles(root_url, target_date, extract_params={'css_selector': 'a[href]'}, limit=10):
+async def extract_articles(source_url, target_date, extract_params={'css_selector': 'a[href]'}, limit=10):
     """Main workflow: Extract URLs -> Filter by date -> Process articles"""
-    print(f"🚀 Starting processing for {root_url} on {target_date}")
+    print(f"🚀 Starting processing for {source_url} on {target_date}")
     
     # Step 1: Extract potential post URLs
     print("\n🔍 Extracting post links...")
-    posts = await extract_from_index(root_url, **extract_params)
-    if not posts:
+    articles = await extract_from_index(source_url, **extract_params)
+    if not articles:
         print("❌ No posts found")
         return
         
-    print(f"📚 Found {len(posts)} potential articles")
+    print(f"📚 Found {len(articles)} potential articles")
+    filtered_articles = articles[:limit]
     
-    # Step 2: Filter by publication date
-    # print("\n📅 Filtering by date...")
-    # filtered_posts = filter_by_date(posts, target_date)
-    # if not filtered_posts:
-    #     print("❌ No posts match the target date")
-    #     return
-    filtered_posts = posts[:limit]
-    
-    print(f"🎯 Found {len(filtered_posts)} articles published on {target_date}")
-    
-    # Step 3: Process each article
+    print(f"🎯 Found {len(filtered_articles)} articles published on {target_date}")
+    return filtered_articles
+
+async def process_articles(filtered_articles):
     results = []
-    n = len(filtered_posts)
-    while len(results) < n and len(filtered_posts) > 0:
-        url = filtered_posts.pop(0)
+    n = len(filtered_articles)
+    while len(results) < n and len(filtered_articles) > 0:
+        url = filtered_articles.pop(0)
         print(f"\n📄 Processing article {url}")
         
         try:
@@ -53,7 +47,7 @@ async def process_articles(root_url, target_date, extract_params={'css_selector'
             summary = await summarize_post(content)
             if summary['summary'] is None:
                 print(f"❌ Error processing {url}: {summary}")
-                filtered_posts.append(url)
+                filtered_articles.append(url)
                 continue
             results.append({
                 "url": url,
@@ -73,7 +67,7 @@ async def process_articles(root_url, target_date, extract_params={'css_selector'
             # })
             
             time.sleep(30)
-            filtered_posts.append(url)
+            filtered_articles.append(url)
             
     # Create the output directory if it doesn't exist
     output_dir = "outputs"
@@ -93,15 +87,15 @@ async def process_articles(root_url, target_date, extract_params={'css_selector'
 
 if __name__ == "__main__":
     try:
-        asyncio.run(process_articles(
-            root_url="https://hn.algolia.com/?dateRange=last24h&type=story",
+        articles = asyncio.run(extract_articles(source_url="https://hn.algolia.com/?dateRange=last24h&type=story",
             target_date="2025-01-29",
-            extract_params={  # Full configuration object
+            extract_params={
                 'css_selector': 'a[href].Story_link',
-                # Can add other extract_posts parameters here
             },
             limit=3
         ))
+        
+        asyncio.run(process_articles(articles))
     except KeyboardInterrupt:
         print("\n🛑 Script interrupted by user")
         sys.exit(1)
