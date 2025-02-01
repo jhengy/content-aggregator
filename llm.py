@@ -74,16 +74,18 @@ async def summarize_all(summaries: list) -> str:
     {text}
     
     Rules:
-    1. Use plain text only in a single paragraph
-    2. Maintain crucial details
-    3. Avoid markdown
+    1. Organize into logical paragraphs and include important points
+    2. Use markdown for formatting
+    3. Add a section below for famous quotes related to the summaries
+    4. Generate diagrams for the summaries in mermaid, highlighting interaction between topics
+    5. Generate topojson(annotate code block with topojson), highlighting the relevant locations and their relationshipsfor events/people/topics in the summaries
     """.format(text=combined)
 
     try:
         return await gemini.generate_content(
             model_key='summarize',
             prompt=prompt,
-            temperature=0.1
+            temperature=0.3
         )
     except Exception as e:
         print(f"Summary aggregation failed: {str(e)}")
