@@ -1,0 +1,44 @@
+name: Content Aggregator
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'  # Daily at 08:00 UTC
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-dev libxml2-dev libxslt-dev chromium-chromedriver
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run summarizer
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL_SUMMARIZE: ${{ secrets.GEMINI_MODEL_SUMMARIZE }}
+          GEMINI_MODEL_DATE_EXTRACT: ${{ secrets.GEMINI_MODEL_DATE_EXTRACT }}
+          DEBUG: "false"
+          ARTICLES_LIMIT: "5"
+        run: python main.py 
+
+      - name: Upload output files
+        uses: actions/upload-artifact@v3
+        with:
+          name: summaries
+          path: |
+            outputs/*.json
+            outputs/*.txt
+          retention-days: 1 
