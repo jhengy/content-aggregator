@@ -26,7 +26,7 @@ async def extract_articles(source_url, extract_type, extract_params={'css_select
         raise ValueError(f"Invalid extract type: {extract_type}")
     
     if not articles:
-        print(f"❌ No posts found from {source_url}")
+        print(f"⚠️ No posts found from {source_url}")
         return []
         
     print(f"📚 Found {len(articles[:limit])} potential articles from {source_url} with limit {limit}")
@@ -162,6 +162,10 @@ async def gather_articles(total_limit=500):
     # Run all tasks concurrently
     results = await asyncio.gather(*coroutines)
     flattened_results = [item for sublist in results for item in sublist]
+    
+    if len(flattened_results) == 0:
+        print("⚠️ No articles found from any sources")
+        return []
   
     # distribute the limit across all sources by the proportion of the number of articles found
     # TODO: there's a chance that the total number exceeds the limit, need to handle this
