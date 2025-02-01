@@ -27,4 +27,4 @@ class GeminiAPI:
             return response.text
         except Exception as e:
             print(f"Gemini API error: {str(e)}")
-            return None 
+            raise e
