@@ -68,6 +68,9 @@ def extract_tag(text: str, tag: str) -> str:
 
 async def summarize_all(summaries: list) -> str:
     """Generate executive summary from multiple summaries"""
+    if len(summaries) == 0:
+        return ""
+    
     combined = "\n".join(summaries)
     prompt = """Generate an executive summary under 500 words from these key points:
     Text to analyze:
