@@ -58,6 +58,7 @@ async def get_page_html(url, wait_until='networkidle', timeout=SESSION_GET_TIMEO
         finally:
             await browser.close()
 
+# TODO: handle anti-bot measures such as captcha
 async def scrape_article(url):
     """Scrape articles using Playwright with improved PDF handling"""
     try:
@@ -74,6 +75,7 @@ async def scrape_article(url):
             return text
         
         html = await get_page_html(url)
+        print(f"=== html ===\n {html} \n=== end of html ===\n") if os.getenv('DEBUG') == 'true' else None
         
         # Sanitize HTML for content extraction
         soup = BeautifulSoup(html, 'html.parser')
@@ -213,6 +215,9 @@ async def main():
     
     pdf = await scrape_article("https://ojjdp.ojp.gov/sites/g/files/xyckuh176/files/media/document/DataSnapshot_JRFC2018.pdf")
     print(f"=== pdf ===\n {pdf} \n=== end of pdf ===\n")
-
+    
+    reuter_captcha = await scrape_article("https://www.reuters.com/world/us/trump-admin-take-down-most-government-websites-5-pm-cbs-reports-2025-01-31/")
+    print(f"=== reuter_captcha ===\n {reuter_captcha} \n=== end of reuter_captcha ===\n")
+    
 if __name__ == "__main__":
     asyncio.run(main())
