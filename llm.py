@@ -78,10 +78,9 @@ async def summarize_all(summaries: list) -> str:
     
     Rules:
     1. Organize into logical paragraphs and include important points
-    2. Use markdown for formatting
+    2. Use markdown for formatting but do not include headers
     3. Add a section below for famous quotes related to the summaries
     4. Generate diagrams for the summaries in mermaid, highlighting interaction between topics
-    5. Generate topojson(annotate code block with topojson), highlighting the relevant locations and their relationshipsfor events/people/topics in the summaries
     """.format(text=combined)
 
     try:
