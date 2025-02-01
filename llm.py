@@ -73,7 +73,7 @@ def extract_tag(text: str, tag: str) -> str:
 async def summarize_all(summaries: list) -> str:
     """Generate executive summary from multiple summaries"""
     combined = "\n".join(summaries)
-    prompt = """Generate an executive summary under 200 words from these key points:
+    prompt = """Generate an executive summary under 500 words from these key points:
     Text to analyze:
     {text}
     
@@ -81,7 +81,7 @@ async def summarize_all(summaries: list) -> str:
     1. Use plain text only in a single paragraph
     2. Maintain crucial details
     3. Avoid markdown
-    4. Keep paragraphs short""".format(text=combined)
+    """.format(text=combined)
 
     try:
         return await gemini.generate_content(
