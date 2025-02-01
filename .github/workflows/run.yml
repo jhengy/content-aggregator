@@ -7,6 +7,7 @@ on:
 jobs:
   summarize:
     runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2 hour timeout
     steps:
       - uses: actions/checkout@v4
       
@@ -40,7 +41,7 @@ jobs:
         run: python main.py 
 
       - name: Upload output files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: summaries
           path: |
