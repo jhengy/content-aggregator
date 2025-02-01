@@ -42,6 +42,9 @@ This will scrape the main content from the specified URL and generate a summary.
 - extract date from the post
   - llm can hallucinate date
 
+- extracting blog content from url
+  - support for dynamic content
+
 - identify the best model for the task
   - criteria
     - reliability
@@ -50,11 +53,18 @@ This will scrape the main content from the specified URL and generate a summary.
     - speed
 
   - possible options
-   - Gemini Flash 1.5 8B Experimental
-   - Gemma 2 9B (free)
-   - Qwen 2 7B Instruct (free)
-   - Llama 3.2 11B Vision Instruct (free)
+    - Gemini Flash 1.5 8B Experimental
+    - Gemma 2 9B (free)
+    - Qwen 2 7B Instruct (free)
+    - Llama 3.2 11B Vision Instruct (free)
 
-
-
-
+- free providers
+  - google ai studio:https://ai.google.dev/pricing#1_5flash
+    - 15 RPM (requests per minute)
+    - 1 million TPM (tokens per minute)
+    - 1,500 RPD (requests per day)
+  - OpenRouter: https://openrouter.ai/docs/limits
+    - Free limit: If you are using a free model variant (with an ID ending in :free), then you will be limited to 20 requests per minute and 200 requests per day.
+  - huggings face serverless inference api
+    - https://huggingface.co/docs/api-inference/en/rate-limits
+     - Signed-up Users	1,000 requests per day
