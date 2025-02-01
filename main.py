@@ -1,4 +1,4 @@
-from scraper import scrape_article, extract_posts
+from scraper import scrape_article, extract_from_index
 from llm import summarize_post, summarize_all
 from dotenv import load_dotenv
 import json
@@ -16,7 +16,7 @@ async def process_articles(root_url, target_date, extract_params={'css_selector'
     
     # Step 1: Extract potential post URLs
     print("\n🔍 Extracting post links...")
-    posts = await extract_posts(root_url, **extract_params)
+    posts = await extract_from_index(root_url, **extract_params)
     if not posts:
         print("❌ No posts found")
         return

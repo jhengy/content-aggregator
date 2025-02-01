@@ -8,6 +8,8 @@ from utils import deduplicate
 from urllib.parse import urljoin
 import asyncio
 from playwright.async_api import async_playwright
+import feedparser
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -71,7 +73,7 @@ def clean_content(html):
               .replace('<noscript>', '').replace('</noscript>', '')\
               .replace('javascript:', '')
 
-async def extract_posts(root_url, css_selector=None, class_name=None, 
+async def extract_from_index(root_url, css_selector=None, class_name=None, 
                  include_patterns=None, exclude_patterns=None):
     session = AsyncHTMLSession()
     try:
@@ -112,10 +114,48 @@ async def extract_posts(root_url, css_selector=None, class_name=None,
     finally:
         await session.close()
     
+async def extract_from_rss(rss_url):
+    """Extract RSS feed items with links and dates"""
+    session = AsyncHTMLSession()
+    try:
+        response = await session.get(rss_url)
+        if response.status_code == 200:
+            feed = feedparser.parse(response.text)
+            items = []
+            
+            for entry in feed.entries:
+                # Get absolute URL
+                link = urljoin(rss_url, entry.link) if entry.link else None
+                
+                # Parse date from multiple possible fields
+                date_fields = [
+                    entry.get('published_parsed'),
+                    entry.get('updated_parsed'),
+                    entry.get('created_parsed')
+                ]
+                pub_date = next(
+                    (datetime(*dt[:6]).isoformat() for dt in date_fields if dt),
+                    None
+                )
+                
+                if link:  # Only include entries with valid links
+                    items.append({
+                        'link': link,
+                        'publish_date': pub_date
+                    })
+                    
+            return items
+            
+        return []
+    except Exception as e:
+        print(f"RSS Error: {str(e)}")
+        return []
+    finally:
+        await session.close()
 
 async def main():
     # TODO: add support for filtering by date and remove noisy links
-    pe_posts = await extract_posts(
+    pe_posts = await extract_from_index(
         "https://blog.pragmaticengineer.com",
         **
         {
@@ -124,7 +164,7 @@ async def main():
     )
     print(f"=== pe_posts ===\n {pe_posts} \n=== end of pe_posts ===\n")
 
-    hn_posts = await extract_posts(
+    hn_posts = await extract_from_index(
         "https://hn.algolia.com/?dateRange=last24h&type=story",
         **
         {
@@ -132,10 +172,12 @@ async def main():
         }
     )
     print(f"=== hn_posts ===\n {hn_posts} \n=== end of hn_posts ===\n")
+    
+    rss = await extract_from_rss("https://blog.pragmaticengineer.com/rss")
+    print(f"=== rss ===\n {rss} \n=== end of rss ===\n")
 
     article = await scrape_article("https://openai.com/index/openai-o3-mini/")
     print(f"=== article ===\n {article} \n=== end of article ===\n")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
