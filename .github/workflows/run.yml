@@ -18,6 +18,7 @@ jobs:
 
       - name: Install system dependencies
         run: |
+          # TODO:check if all dependencies are indeed needed
           sudo apt-get update
           sudo apt-get install -y \
             python3-dev \
