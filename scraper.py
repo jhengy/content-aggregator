@@ -10,6 +10,7 @@ import asyncio
 from playwright.async_api import async_playwright
 import feedparser
 from datetime import datetime
+import time
 
 # Load environment variables
 load_dotenv()
@@ -135,14 +136,14 @@ async def extract_from_rss(rss_url):
                     entry.get('created_parsed')
                 ]
                 pub_date = next(
-                    (datetime(*dt[:6]).isoformat() for dt in date_fields if dt),
+                    (int(time.mktime(dt)) for dt in date_fields if dt),  # Convert to epoch timestamp
                     None
                 )
                 
                 if link:  # Only include entries with valid links
                     items.append({
                         'link': link,
-                        'publish_date': pub_date
+                        'publish_at': pub_date  # Now stores epoch timestamp
                     })
                     
             return items

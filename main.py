@@ -1,4 +1,4 @@
-from scraper import scrape_article, extract_from_index
+from scraper import scrape_article, extract_from_index, extract_from_rss
 from llm import summarize_post, summarize_all
 from dotenv import load_dotenv
 import json
@@ -7,25 +7,30 @@ import os
 import time
 import sys
 import asyncio
+from utils import deduplicate
 
 load_dotenv()
 
-async def extract_articles(source_url, target_date, extract_params={'css_selector': 'a[href]'}, limit=10):
+async def extract_articles(source_url, extract_type, extract_params={'css_selector': 'a[href]'}, limit=100):
     """Main workflow: Extract URLs -> Filter by date -> Process articles"""
-    print(f"🚀 Starting processing for {source_url} on {target_date}")
+    print(f"🚀 Starting extracting articles from {source_url}")
     
-    # Step 1: Extract potential post URLs
-    print("\n🔍 Extracting post links...")
-    articles = await extract_from_index(source_url, **extract_params)
+    if extract_type == 'rss':
+        current_time = time.time()
+        one_day_ago = current_time - 86400
+        articles = await extract_from_rss(source_url)
+        articles = [x['link'] for x in articles if x['publish_at'] > one_day_ago]
+    elif extract_type == 'index':
+        articles = await extract_from_index(source_url, **extract_params)
+    else:
+        raise ValueError(f"Invalid extract type: {extract_type}")
+    
     if not articles:
         print("❌ No posts found")
         return
         
-    print(f"📚 Found {len(articles)} potential articles")
-    filtered_articles = articles[:limit]
-    
-    print(f"🎯 Found {len(filtered_articles)} articles published on {target_date}")
-    return filtered_articles
+    print(f"📚 Found {len(articles[:limit])} potential articles with limit {limit}")
+    return articles[:limit]
 
 async def process_articles(filtered_articles):
     results = []
@@ -85,16 +90,45 @@ async def process_articles(filtered_articles):
         
     print(f"\n🎉 Done! Results saved to {filename}")
 
+async def gather_articles(total_limit=500):
+    """Run multiple extraction tasks concurrently and combine results"""
+    
+    article_tasks = [
+        {
+            'source_url': "https://hn.algolia.com/?dateRange=last24h&type=story",
+            'extract_type': 'index',
+            'extract_params': {'css_selector': 'a[href].Story_link'},
+        },
+        {
+            'source_url': "https://simonwillison.net/atom/everything/",
+            'extract_type': 'rss',
+        }
+    ]
+    
+    article_tasks_with_limit = [
+        {
+            **task,
+            'limit': int(total_limit / len(article_tasks))
+        }
+        for task in article_tasks
+    ]
+    
+    # Create all coroutines
+    coroutines = [extract_articles(**task) for task in article_tasks_with_limit]
+    
+    # Run all tasks concurrently
+    results = await asyncio.gather(*coroutines)
+    
+    # Combine and deduplicate
+    combined = deduplicate(
+        [item for sublist in results for item in sublist]
+    )
+    
+    return combined[:total_limit]
+
 if __name__ == "__main__":
     try:
-        articles = asyncio.run(extract_articles(source_url="https://hn.algolia.com/?dateRange=last24h&type=story",
-            target_date="2025-01-29",
-            extract_params={
-                'css_selector': 'a[href].Story_link',
-            },
-            limit=3
-        ))
-        
+        articles = asyncio.run(gather_articles())
         asyncio.run(process_articles(articles))
     except KeyboardInterrupt:
         print("\n🛑 Script interrupted by user")
