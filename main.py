@@ -103,6 +103,7 @@ async def process_articles(articles):
 async def gather_articles(total_limit=500):
     """Run multiple extraction tasks concurrently and combine results"""
     
+    # TODO: source_url for index extract type should implicitly include the date range as there is no reliable way to get the date range from the index page, think of a better way to do this
     article_tasks = [
         {
             'source_url': "https://hn.algolia.com/?dateRange=last24h&type=story",
