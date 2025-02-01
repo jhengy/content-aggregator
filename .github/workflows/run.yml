@@ -18,7 +18,12 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-dev libxml2-dev libxslt-dev chromium-chromedriver
+          sudo apt-get install -y \
+            python3-dev \
+            libxml2-dev \
+            libxslt-dev \
+            chromium-chromedriver \
+            jq
 
       - name: Install Python dependencies
         run: |
@@ -41,4 +46,22 @@ jobs:
           path: |
             outputs/*.json
             outputs/*.txt
-          retention-days: 1 
+          retention-days: 1
+
+      - name: Create GitHub Issue
+        if: always()  # Run even if previous steps fail
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Combine output files into markdown
+          echo "## Daily Content Summary - $(date +'%Y-%m-%d')" > issue_body.md
+          echo "### Articles Processed" >> issue_body.md
+          jq -r '.[] | "- [\(.url)]: \(.summary)"' outputs/*.json >> issue_body.md 2>/dev/null || echo "No articles processed today" >> issue_body.md
+          echo "\n### Executive Summary" >> issue_body.md
+          cat outputs/*_summary.txt >> issue_body.md 2>/dev/null || echo "No summary generated" >> issue_body.md
+          
+          # Create issue using GitHub CLI
+          gh issue create \
+            --title "Daily Content Summary $(date +'%Y-%m-%d')" \
+            --body-file issue_body.md \
+            --label automated 
