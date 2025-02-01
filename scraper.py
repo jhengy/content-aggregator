@@ -8,6 +8,8 @@ from urllib.parse import urljoin
 import asyncio
 import feedparser
 import time
+from PyPDF2 import PdfReader
+import io
 
 # Load environment variables
 load_dotenv()
@@ -30,17 +32,21 @@ HEADERS = {
 # TODO: manage session creation and closing at the top level, maybe creating a class to encapsulate the session
 # TODO: see if changing to production grade browser automation tools such as playwright or puppeteer would be better in (1) performance (2) reliability (counter measure for anti-scraping measures)
 async def scrape_article(url):
-    """Async scraping with proper JS rendering"""
+    """Async scraping with support for HTML articles and PDF documents"""
     session = AsyncHTMLSession()
     try:
-
-        
-        # Fetch page with browser-like headers
         response = await session.get(
             url,
             timeout=SESSION_GET_TIMEOUT,
             headers=HEADERS
         )
+
+        # TODO: Ideally it should be left to the LLM to handle PDF due to its multi-model capabilities
+        if url.lower().endswith('.pdf'):
+            pdf_stream = io.BytesIO(response.content)
+            reader = PdfReader(pdf_stream)
+            text = '\n'.join([page.extract_text() for page in reader.pages])
+            return text
         
         await response.html.arender(
             timeout=SESSION_RENDER_TIMEOUT,
@@ -187,20 +193,14 @@ async def main():
     )
     print(f"=== pe_posts ===\n {pe_posts} \n=== end of pe_posts ===\n")
 
-    hn_posts = await extract_from_index(
-        "https://hn.algolia.com/?dateRange=last24h&type=story",
-        **
-        {
-            'css_selector': 'a[href].Story_link'
-        }
-    )
-    print(f"=== hn_posts ===\n {hn_posts} \n=== end of hn_posts ===\n")
-    
     rss = await extract_from_rss("https://blog.pragmaticengineer.com/rss")
     print(f"=== rss ===\n {rss} \n=== end of rss ===\n")
 
     article = await scrape_article("https://openai.com/index/openai-o3-mini/")
     print(f"=== article ===\n {article} \n=== end of article ===\n")
+    
+    pdf = await scrape_article("https://ojjdp.ojp.gov/sites/g/files/xyckuh176/files/media/document/DataSnapshot_JRFC2018.pdf")
+    print(f"=== pdf ===\n {pdf} \n=== end of pdf ===\n")
 
 if __name__ == "__main__":
     asyncio.run(main())

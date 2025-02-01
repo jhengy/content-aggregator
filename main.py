@@ -46,7 +46,6 @@ async def process_articles(articles):
         print(f"\n📄 Processing article {url}")
         
         try:
-            # TODO: support for pdf
             print("Scrape content...")
             content = await scrape_article(url)
             if not content:
