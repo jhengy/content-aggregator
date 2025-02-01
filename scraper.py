@@ -13,29 +13,40 @@ import time
 load_dotenv()
 
 UNKNOWN = ""
+SESSION_GET_TIMEOUT = 20
+SESSION_RENDER_TIMEOUT = 30
+SESSION_RENDER_SLEEP = 3
+SESSION_RENDER_RETRIES = 3
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Referer': 'https://google.com/',
+    'Sec-CH-UA': '"Chromium";v="116", "Not)A;Brand";v="24"',
+    'Sec-CH-UA-Platform': '"Windows"',
+    'Sec-CH-UA-Mobile': '?0',
+}
 
 # TODO: manage session creation and closing at the top level, maybe creating a class to encapsulate the session
+# TODO: see if changing to production grade browser automation tools such as playwright or puppeteer would be better in (1) performance (2) reliability (counter measure for anti-scraping measures)
 async def scrape_article(url):
     """Async scraping with proper JS rendering"""
     session = AsyncHTMLSession()
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://google.com/',
-        }
-        
-        # Configure timeouts from environment
-        timeout = int(os.getenv('REQUEST_TIMEOUT', 20))
+
         
         # Fetch page with browser-like headers
         response = await session.get(
             url,
-            timeout=timeout,
-            headers=headers
+            timeout=SESSION_GET_TIMEOUT,
+            headers=HEADERS
         )
         
-        await response.html.arender(timeout=10, sleep=3)
+        await response.html.arender(
+            timeout=SESSION_RENDER_TIMEOUT,
+            sleep=SESSION_RENDER_SLEEP,
+            retries=SESSION_RENDER_RETRIES
+        )
 
         # Clean content before parsing
         cleaned_html = clean_content(response.html.html)
@@ -78,8 +89,12 @@ async def extract_from_index(root_url, css_selector=None, class_name=None,
                  include_patterns=None, exclude_patterns=None):
     session = AsyncHTMLSession()
     try:
-        response = await session.get(root_url)
-        await response.html.arender(timeout=10, sleep=3)
+        response = await session.get(root_url, timeout=SESSION_GET_TIMEOUT, headers=HEADERS)
+        await response.html.arender(
+            timeout=SESSION_RENDER_TIMEOUT,
+            sleep=SESSION_RENDER_SLEEP,
+            retries=SESSION_RENDER_RETRIES
+        )
         
         soup = BeautifulSoup(response.html.html, 'html.parser')
         
@@ -124,7 +139,7 @@ async def extract_from_rss(rss_url):
     """Extract RSS feed items with links and dates"""
     session = AsyncHTMLSession()
     try:
-        response = await session.get(rss_url)
+        response = await session.get(rss_url, timeout=SESSION_GET_TIMEOUT, headers=HEADERS)
         if response.status_code == 200:
             feed = feedparser.parse(response.text)
             items = []
