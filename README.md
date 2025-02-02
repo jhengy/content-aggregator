@@ -1,6 +1,6 @@
 # Web Content Summarizer
 
-A Python tool that scrapes web articles and generates summaries using the OpenRouter API.
+A Python tool that scrapes web articles and generates summaries using the Generative AI.
 
 ## Setup
 
@@ -62,29 +62,39 @@ For GitHub Actions execution, ensure these repository settings:
   - same model can output different results with the same prompt
   - different models different output formats depending on the prompt -> hard to parse response in a consistent way
 - reliability
-  - slowness, causing timeouts
+  - speed issue: slowness, causing timeouts
   - rate limiting causing errors
    - retry logic
+- quality of output
+  - not always accurate, hallucinations can happen
+  - not always relevant
+  - not always useful
+  - not always interesting
+  - not always surprising
+- cost
+  - expensive to host and run on your own
+  - expensive to run on a cloud provider for better models
 - extract date from the post
   - llm can hallucinate date
 
 - extracting blog content from url
   - support for dynamic content
 
-- identify the best model for the task
-  - criteria
-    - reliability
-    - quality of output
-    - cost
-    - speed
+- too many models to choose from
 
-  - possible options
-    - Gemini Flash 1.5 8B Experimental
-    - Gemma 2 9B (free)
-    - Qwen 2 7B Instruct (free)
-    - Llama 3.2 11B Vision Instruct (free)
+## Identify the best model for the task
+- criteria
+  - reliability
+  - quality of output
+  - cost
 
-- free providers
+- possible options
+  - Gemini Flash 1.5 8B Experimental
+  - Gemma 2 9B (free)
+  - Qwen 2 7B Instruct (free)
+  - Llama 3.2 11B Vision Instruct (free)
+
+- free providers (true as of the time of writing)
   - google ai studio
     - https://ai.google.dev/gemini-api/docs/models/gemini
     - https://ai.google.dev/pricing#1_5flash
@@ -95,7 +105,7 @@ For GitHub Actions execution, ensure these repository settings:
     - Free limit: If you are using a free model variant (with an ID ending in :free), then you will be limited to 20 requests per minute and 200 requests per day.
   - huggings face serverless inference api
     - https://huggingface.co/docs/api-inference/en/rate-limits
-     - Signed-up Users	1,000 requests per day
+      - Signed-up Users	1,000 requests per day
 
 
 ## TODO
