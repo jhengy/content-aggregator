@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 import asyncio
 import feedparser
 import time
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 import io
 from playwright.async_api import async_playwright
 from typing import Dict, List, Optional, Any

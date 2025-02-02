@@ -50,6 +50,7 @@ async def test_article_scraping(scraper):
     # Test PDF
     pdf_content = await scraper.scrape_article("https://ojjdp.ojp.gov/sites/g/files/xyckuh176/files/media/document/DataSnapshot_JRFC2018.pdf")
     assert "Juvenile" in pdf_content, "PDF content should be extracted"
+    print(f"=== pdf_content ===\n {pdf_content} \n=== end of pdf_content ===\n")
     
     # Test problematic URL (captcha)
     captcha_content = await scraper.scrape_article("https://www.reuters.com/world/us/trump-admin-take-down-most-government-websites-5-pm-cbs-reports-2025-01-31/")
