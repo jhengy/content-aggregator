@@ -12,6 +12,7 @@ from PyPDF2 import PdfReader
 import io
 from playwright.async_api import async_playwright
 from typing import Dict, List, Optional, Any
+from models import Article
 
 # Load environment variables
 load_dotenv()
@@ -45,7 +46,7 @@ class Scraper:
         class_name: Optional[str] = None,
         include_patterns: Optional[List[str]] = None,
         exclude_patterns: Optional[List[str]] = None
-    ) -> List[Dict[str, str]]:
+    ) -> List[Article]:
         """Extract articles from index pages"""
         try:
             html = await self._get_page_html(root_url)
@@ -71,12 +72,16 @@ class Scraper:
                     include = False
                     
                 if include:
-                    post_links.append({
-                        'url': url,
-                        'publish_at': Scraper.UNKNOWN,
-                        'author': Scraper.UNKNOWN,
-                        'title': Scraper.UNKNOWN,
-                    })
+                    post_links.append(Article(
+                        url=url,
+                        title=self.UNKNOWN,
+                        author=self.UNKNOWN,
+                        publish_at=None,
+                        tags=None,
+                        date=None,
+                        summary=None,
+                        timestamp=None
+                    ))
             
             return post_links
 
@@ -84,7 +89,7 @@ class Scraper:
             print(f"Index extraction failed: {str(e)}")
             return []
 
-    async def extract_from_rss(self, rss_url: str) -> List[Dict[str, Any]]:
+    async def extract_from_rss(self, rss_url: str) -> List[Article]:
         """Extract articles from RSS feeds"""
         session = AsyncHTMLSession()
         try:
@@ -109,12 +114,16 @@ class Scraper:
                     )
                     
                     if url:  # Only include entries with valid links
-                        items.append({
-                            'url': url,
-                            'publish_at': pub_date,  # Now stores epoch timestamp
-                            'author': entry.get('author') or Scraper.UNKNOWN,
-                            'title': entry.get('title') or Scraper.UNKNOWN
-                        })
+                        items.append(Article(
+                            url=url,
+                            publish_at=pub_date,
+                            author=entry.get('author') or self.UNKNOWN,
+                            title=entry.get('title') or self.UNKNOWN,
+                            tags=None,
+                            date=None,
+                            summary=None,
+                            timestamp=None
+                        ))
                         
                 return items
                 

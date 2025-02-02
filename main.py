@@ -9,6 +9,7 @@ from utils import deduplicate
 from typing import List, Dict, Any
 from scraper import Scraper
 from llm import LLMProcessor
+from models import Article
 
 load_dotenv()
 
@@ -100,7 +101,7 @@ class ContentAggregator:
         print(f"📚 Found {len(articles[:limit])} potential articles from {source_url} with limit {limit}")
         return articles[:limit]
 
-    async def process_articles(self, articles):
+    async def process_articles(self, articles: List[Article]) -> List[Article]:
         results = []
         already_retried = set()
         while len(articles) > 0:
@@ -122,7 +123,7 @@ class ContentAggregator:
                     
                 # Generate summary
                 print("Generating summary...")
-                summary = await summarize_post(article_content)
+                summary = await self.llm.summarize_post(article_content, url)
                 if summary.get('summary') is None:
                     print(f"❌ Error processing {url} - returned empty summary")
                     if url not in already_retried:
@@ -130,15 +131,16 @@ class ContentAggregator:
                         articles.append(article)
                         continue
                 else:
-                    results.append({
-                        "url": url,
-                        "tags": summary.get('tags'),
-                        "date": summary.get('date'),
-                        "summary": summary.get('summary'),
-                        "author": article.get('author') or summary.get('author'),
-                        "title": article.get('title') or summary.get('title'),
-                        "timestamp": datetime.now().isoformat()
-                    })
+                    results.append(Article(
+                        url=url,
+                        tags=summary.get('tags'),
+                        date=summary.get('date'),
+                        summary=summary.get('summary'),
+                        author=article.get('author') or summary.get('author'),
+                        title=article.get('title') or summary.get('title'),
+                        publish_at=article.get('publish_at'),
+                        timestamp=datetime.now().isoformat()
+                    ))
                 
                 print(f"✅ Successfully processed: {url}")
                 
@@ -157,7 +159,7 @@ class ContentAggregator:
         
         json_filename = f"{output_dir}/{file_prefix}.json"
         with open(json_filename, 'w') as f:
-            json.dump(results, f, indent=2)
+            json.dump([article.dict() for article in results], f, indent=2)
         
         # Generate executive summary
         print("Generating executive summary...")
@@ -167,6 +169,7 @@ class ContentAggregator:
             f.write(executive_summary)
         
         print(f"\n🎉 Done! Results saved to {json_filename} and {summary_filename}")
+        return results
 
     async def gather_articles(self):
         """Run multiple extraction tasks concurrently and combine results"""

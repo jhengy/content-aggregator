@@ -1,8 +1,10 @@
 import requests
 from datetime import datetime
 import os
+from typing import List, Callable
+from models import Article
 
-def deduplicate(arr, key_func=lambda x: x):
+def deduplicate(arr: List[Article], key_func: Callable[[Article], str] = lambda x: x['url']) -> List[Article]:
     seen = set()
     return [item for item in arr if (key := key_func(item)) not in seen and not seen.add(key)]
 

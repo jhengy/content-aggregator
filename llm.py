@@ -4,6 +4,7 @@ import asyncio
 from gemini_api import GeminiAPI
 import re
 from typing import Dict, List, Optional
+from models import Article
 
 # Load environment variables
 load_dotenv()
@@ -16,10 +17,11 @@ class LLMProcessor:
     def __init__(self):
         self.gemini = GeminiAPI()
 
-    async def summarize_post(self, text: str) -> Dict[str, str]:
+    # Public interface
+    async def summarize_post(self, text: str, source_url: str) -> Article:
         """Process individual post with error handling"""
         if not text.strip():
-            return self._empty_response()
+            return self._empty_response(source_url)
             
         truncated = text[:15000] if text else ""
     
@@ -47,24 +49,10 @@ Article text:
                 prompt=prompt,
                 temperature=0.1
             )
-            return self.parse_response(response)
+            return self._parse_response(response, source_url)
         except Exception as e:
             print(f"Summarization error: {str(e)}")
-            return self._empty_response()
-
-    def parse_response(self, response: str) -> dict:
-        """Parse the XML-like response format"""
-        return {
-            "tags": self.extract_tag(response, "tags"),
-            "date": self.extract_tag(response, "date"),
-            "author": self.extract_tag(response, "author"),
-            "title": self.extract_tag(response, "title"),
-            "summary": self.extract_tag(response, "summary")
-        }
-
-    def extract_tag(self, text: str, tag: str) -> str:
-        match = re.search(f'<{tag}>(.*?)</{tag}>', text, re.DOTALL)
-        return match.group(1).strip() if match else self.UNKNOWN
+            return self._empty_response(source_url)
 
     async def summarize_all(self, summaries: list) -> str:
         """Generate executive summary from multiple summaries"""
@@ -114,13 +102,42 @@ Article text:
             print(f"Date extraction failed: {str(e)}")
             return 'null'
 
-    def _empty_response(self) -> dict:
+    # Private helpers
+    def _parse_response(self, response: str, source_url: str) -> Article:
+        """Parse the XML-like response format"""
+        title_match = re.search(f'<title>(.*?)</title>', response, re.DOTALL)
+        author_match = re.search(f'<author>(.*?)</author>', response, re.DOTALL)
+        date_match = re.search(f'<date>(.*?)</date>', response, re.DOTALL)
+        summary_match = re.search(f'<summary>(.*?)</summary>', response, re.DOTALL)
+        tags_match = re.search(f'<tags>(.*?)</tags>', response, re.DOTALL)
+        
+        return Article(
+            url=source_url,
+            title=title_match.group(1) if title_match else self.UNKNOWN,
+            author=author_match.group(1) if author_match else self.UNKNOWN,
+            publish_at=None,  # Will be populated during processing
+            tags=tags_match.group(1) if tags_match else self.UNKNOWN,
+            date=date_match.group(1) if date_match else self.UNKNOWN,
+            summary=summary_match.group(1) if summary_match else 'No summary generated',
+            timestamp=datetime.now().isoformat()
+        )
+
+    def _extract_tag(self, text: str, tag: str) -> str:
+        match = re.search(f'<{tag}>(.*?)</{tag}>', text, re.DOTALL)
+        return match.group(1).strip() if match else self.UNKNOWN
+
+    def _empty_response(self, source_url: str) -> Article:
         """Return a default response for empty content"""
-        return {
-            "tags": self.UNKNOWN,
-            "date": self.UNKNOWN,
-            "summary": "empty content"
-        }
+        return Article(
+            url=source_url,
+            title=self.UNKNOWN,
+            author=self.UNKNOWN,
+            publish_at=None,
+            tags=self.UNKNOWN,
+            date=self.UNKNOWN,
+            summary="empty content",
+            timestamp=datetime.now().isoformat()
+        )
 
 async def main():
    
@@ -226,7 +243,7 @@ Show more comments
 Most Popular 
     """
     processor = LLMProcessor()
-    summary = await processor.summarize_post(article)
+    summary = await processor.summarize_post(article, "https://www.tomshardware.com/news/seagate-hard-drives-used-by-resellers-not-official-distributors")
     print(f"=== summary ===\n {summary} \n=== end of summary ===\n")
     
     results = ['Internet sleuths discovered that including expletives in Google search queries disables the AI-generated summaries, providing only standard search results. This workaround highlights user dissatisfaction with AI summaries, which are often inaccurate and potentially spread misinformation.  The method is a simple alternative to more complex techniques for disabling AI results.  This issue reflects broader concerns about the unchecked proliferation of AI tools across various platforms.', '', 'This is a list of recent posts related to game development, including news about Godot 4.4 beta 2,  open-source projects like a pixel art upscaler and a 2D cloth simulation, and articles on game design and industry trends.  Several posts highlight new releases and tools for game developers. The list also includes discussions on game development processes and performance optimization.']
