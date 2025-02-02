@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 from scraper import Scraper
 from llm import LLMProcessor
 from models import Article
+from exceptions import RateLimitExceededError
 
 load_dotenv()
 
@@ -72,7 +73,7 @@ class ContentAggregator:
                 }
             ],
             'max_articles': int(os.getenv('ARTICLES_LIMIT', 500)),
-            'retry_delay': 15
+            'retry_delay_seconds': 15
         }
 
     async def run_pipeline(self) -> None:
@@ -145,16 +146,20 @@ class ContentAggregator:
                 
                 print(f"✅ Successfully processed: {url}")
                 
+            except RateLimitExceededError as e:
+                retry_after = e.retry_after
+                if retry_after:
+                    print(f"🔄 Retrying {url} in {retry_after} seconds")
+                    time.sleep(retry_after)
+                else:
+                    print(f"🔄 Retrying {url} in {self.config['retry_delay_seconds']} seconds")
+                    time.sleep(self.config['retry_delay_seconds'])
+                already_retried.add(url)
+                articles.append(article)
+                
             except Exception as e:
                 print(f"❌ Error processing {url} - {str(e)}")
-
-                if url not in already_retried:
-                    # assume random error due to say rate limiting, wait and try again
-                    print(f"🔄 Retrying {url} in {self.config['retry_delay']} seconds")
-                    time.sleep(self.config['retry_delay'])
-                    already_retried.add(url)
-                    articles.append(article)
-
+                pass
             
         # Create the output directory if it doesn't exist
         output_dir = "outputs"

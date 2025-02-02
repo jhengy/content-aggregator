@@ -2,10 +2,16 @@ from typing import Dict, Optional
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
+from google.api_core.exceptions import ResourceExhausted
+from exceptions import RateLimitExceededError
+from urllib3.util import Retry
+
 
 load_dotenv()
 
 class GeminiAPI:
+    RETRY_AFTER_DEFAULT = 15
+    
     """Client for interacting with Gemini API with model management"""
     def __init__(self):
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
@@ -33,11 +39,25 @@ class GeminiAPI:
             )
             self._log_debug(f"Response: {response.text}")
             return response.text
+        except ResourceExhausted as e:
+            retry_after = self._parse_retry_after(e.retry_after) if hasattr(e, 'retry_after') else self.RETRY_AFTER_DEFAULT
+            raise RateLimitExceededError(retry_after=retry_after) from e
         except Exception as e:
             print(f"Gemini API error: {str(e)}")
+            
+            if hasattr(e, 'status_code') and e.status_code == 429:
+                retry_after = self._parse_retry_after(e.headers.get('Retry-After')) if hasattr(e, 'headers') else self.RETRY_AFTER_DEFAULT
+                raise RateLimitExceededError(retry_after=retry_after) from e
             raise e
 
     def _log_debug(self, message: str) -> None:
         """Helper for debug logging"""
         if os.getenv('DEBUG') == 'true':
             print(message)
+
+    def _parse_retry_after(self, retry_after_str):
+        try:
+            return Retry.parse_retry_after(retry_after_str)
+        except Exception as e:
+            print(f"Error parsing {retry_after_str} - {str(e)}")
+            return self.RETRY_AFTER_DEFAULT
