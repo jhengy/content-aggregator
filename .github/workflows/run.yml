@@ -69,4 +69,5 @@ jobs:
           gh issue create \
             --title "Daily Content Summary $(date +'%Y-%m-%d')" \
             --body-file $FILE_NAME \
-            --label automated 
+            --label automated
+

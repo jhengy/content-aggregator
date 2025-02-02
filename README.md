@@ -120,3 +120,20 @@ For GitHub Actions execution, ensure these repository settings:
     - linkages to something outside the article
   - summarization and extraction from web url, skip web scraping content before passing to llm
     - to what extent can ai model successfully extract content and summarize it based on the url? Signal to noise ratio
+
+## For Developers
+
+### Installation
+```bash
+# Install with development dependencies
+pip install -e '.[dev]'
+```
+
+### Running Tests
+```bash
+# Basic tests
+pytest tests/ -v -s
+
+# With coverage report
+pytest --cov=content_aggregator --cov-report=html -s
+```
