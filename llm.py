@@ -65,10 +65,19 @@ Article text:
         {text}
         
         Rules:
-        1. Organize into logical paragraphs and include important points
-        2. Use markdown for formatting but do not include headers
-        3. Add a section below for famous quotes related to the summaries
-        4. Generate diagrams for the summaries in mermaid, highlighting interaction between topics
+        1. Organize into logical paragraphs focusing on surprising findings and novel connections, include key points from each source
+        2. Use markdown formatting (bold key terms, bullet lists for key points) but no headers
+        3. Include these sections:
+           - **Key Insights** (3-5 counterintuitive observations)
+           - **Emerging Patterns** (unexpected trends across sources)
+           - **Implications** (potential future impacts)
+           - **Notable Quotes** (3 relevant quotes from experts/historical figures)
+        
+        Style Guidelines:
+        - Highlight contradictions between sources
+        - Emphasize data points that deviate from common knowledge
+        - Ask 2-3 provocative open questions at the end
+        - Maintain professional tone but avoid corporate jargon and keep it concise
         """.format(text=combined)
 
         try:
