@@ -30,5 +30,7 @@ dev = [
     "pytest-cov",
     "mypy>=1.0",
     "flake8>=5.0",
-    "types-requests>=2.28.0"
+    "types-requests>=2.28.0",
+    "bandit>=1.7.5",
+    "safety>=2.3.5"
 ] 

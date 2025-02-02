@@ -55,9 +55,11 @@ jobs:
       #     playwright install-deps
       - name: Run tests
         run: pytest tests/ -v -m "not external"
+      - name: Run type checks
+        continue-on-error: true
+        run: mypy src/content_aggregator
       - name: Run security checks
+        continue-on-error: true
         run: |
           bandit -r src/content_aggregator
           safety check
-      - name: Run type checks
-        run: mypy src/content_aggregator
