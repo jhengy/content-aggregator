@@ -12,8 +12,8 @@ A Python tool that scrapes web articles and generates summaries using the Genera
    ```
 3. Install dependencies:
    ```bash
-   pip install -r requirements.txt
-   pip install -e . # install package in editable mode
+   pip install -e . # install package in editable mode with dependencies
+   playwright install chromium
    ```
 4. Configure environment variables:
    ```bash
