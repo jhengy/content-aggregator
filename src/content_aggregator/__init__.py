@@ -148,16 +148,18 @@ class ContentAggregator:
                 
                 print(f"✅ Successfully processed: {url}")
                 
+            # TODO: exponential backoff in retry?
             except RateLimitExceededError as e:
-                retry_after = e.retry_after
-                if retry_after:
+                if url not in already_retried:
+                    retry_after = e.retry_after or self.config['retry_delay_seconds']
                     print(f"🔄 Retrying {url} in {retry_after} seconds")
                     time.sleep(retry_after)
+                    
+                    already_retried.add(url)
+                    articles.append(article)
                 else:
-                    print(f"🔄 Retrying {url} in {self.config['retry_delay_seconds']} seconds")
-                    time.sleep(self.config['retry_delay_seconds'])
-                already_retried.add(url)
-                articles.append(article)
+                    print(f"⚠️ Already retried {url} - skipping")
+                    continue
                 
             except Exception as e:
                 print(f"❌ Error processing {url} - {str(e)}")
