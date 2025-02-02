@@ -64,6 +64,10 @@ pip install -e '.[dev]'
 
 # Run all tests
 pytest tests/ -v -s
+# Run internal tests
+pytest tests/ -v -m "not external"
+# Run external tests, reqwuire network call to url and external service such as gemini
+pytest tests/ -v -m external
 
 # Generate coverage report
 pytest --cov=content_aggregator --cov-report=html -s

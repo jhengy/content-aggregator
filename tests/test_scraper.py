@@ -5,7 +5,7 @@ from content_aggregator.scraper import Scraper
 def scraper():
     return Scraper()
 
-@pytest.mark.integration
+@pytest.mark.external
 @pytest.mark.asyncio
 async def test_hn_scraping(scraper):
     """Test Hacker News index scraping"""
@@ -17,7 +17,7 @@ async def test_hn_scraping(scraper):
     assert len(hn_posts) > 0, "Should find Hacker News posts"
     assert all(post['url'].startswith('https://') for post in hn_posts), "URLs should be valid"
 
-@pytest.mark.integration
+@pytest.mark.external
 @pytest.mark.asyncio
 async def test_pe_blog_scraping(scraper):
     """Test Pragmatic Engineer blog scraping"""
@@ -29,7 +29,7 @@ async def test_pe_blog_scraping(scraper):
     assert len(pe_posts) > 0, "Should find blog posts"
     assert all('pragmaticengineer.com' in post['url'] for post in pe_posts), "All URLs should match include pattern"
 
-@pytest.mark.integration
+@pytest.mark.external
 @pytest.mark.asyncio
 async def test_rss_feed_parsing(scraper):
     """Test RSS feed parsing"""
@@ -38,7 +38,7 @@ async def test_rss_feed_parsing(scraper):
     assert len(rss) > 0, "Should parse RSS feed entries"
     assert all(post['publish_at'] is not None for post in rss), "RSS entries should have publish dates"
 
-@pytest.mark.integration
+@pytest.mark.external
 @pytest.mark.asyncio
 async def test_article_scraping(scraper):
     """Test article content scraping"""
