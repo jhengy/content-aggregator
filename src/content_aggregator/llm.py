@@ -1,10 +1,10 @@
 from dotenv import load_dotenv
 from datetime import datetime
 import asyncio
-from gemini_api import GeminiAPI
+from .gemini_api import GeminiAPI
 import re
 from typing import Dict, List, Optional
-from models import Article
+from .models import Article
 
 # Load environment variables
 load_dotenv()

@@ -2,7 +2,7 @@ import requests
 from datetime import datetime
 import os
 from typing import List, Callable
-from models import Article
+from .models import Article
 
 def deduplicate(arr: List[Article], key_func: Callable[[Article], str] = lambda x: x['url']) -> List[Article]:
     seen = set()

@@ -13,6 +13,7 @@ A Python tool that scrapes web articles and generates summaries using the Genera
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   pip install -e . # install package in editable mode
    ```
 4. Configure environment variables:
    ```bash
@@ -29,10 +30,9 @@ A Python tool that scrapes web articles and generates summaries using the Genera
 
 ### Local Execution
 ```bash
-python main.py
+# generate issue
+scripts/run.sh
 ```
-
-This will scrape the main content from the specified URL and generate a summary.
 
 ### Automated Daily Summaries
 The system includes GitHub Actions configured to:

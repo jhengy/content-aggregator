@@ -1,0 +1,13 @@
+[project]
+name = "content-aggregator"
+version = "0.1.0"
+description = "Web Content Summarizer"
+requires-python = ">=3.10"
+readme = "README.md"
+
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+content-aggregator = "content_aggregator:main" 

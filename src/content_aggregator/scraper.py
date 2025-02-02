@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
 from requests_html import AsyncHTMLSession
-from utils import deduplicate
+from .utils import deduplicate
 from urllib.parse import urljoin
 import asyncio
 import feedparser
@@ -12,7 +12,7 @@ from PyPDF2 import PdfReader
 import io
 from playwright.async_api import async_playwright
 from typing import Dict, List, Optional, Any
-from models import Article
+from .models import Article
 
 # Load environment variables
 load_dotenv()

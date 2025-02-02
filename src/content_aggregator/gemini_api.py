@@ -3,7 +3,7 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 from google.api_core.exceptions import ResourceExhausted
-from exceptions import RateLimitExceededError
+from .exceptions import RateLimitExceededError
 from urllib3.util import Retry
 
 

@@ -31,6 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -e .  # Install package in editable mode
 
       - name: Install Playwright browsers
         run: |
@@ -44,7 +45,7 @@ jobs:
           GEMINI_MODEL_DATE_EXTRACT: ${{ secrets.GEMINI_MODEL_DATE_EXTRACT }}
           DEBUG: "false"
           ARTICLES_LIMIT: "500"
-        run: python main.py 
+        run: content-aggregator run
 
       - name: Upload output files
         uses: actions/upload-artifact@v4

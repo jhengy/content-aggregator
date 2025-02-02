@@ -4,15 +4,17 @@ from datetime import datetime
 import os
 import time
 import sys
-import asyncio
-from utils import deduplicate
+from .utils import deduplicate
 from typing import List, Dict, Any
-from scraper import Scraper
-from llm import LLMProcessor
-from models import Article
-from exceptions import RateLimitExceededError
+from .scraper import Scraper
+from .llm import LLMProcessor
+from .models import Article
+from .exceptions import RateLimitExceededError
+import asyncio
+import click
 
-load_dotenv()
+__version__ = "0.1.0"
+__all__ = ['ContentAggregator', 'Scraper', 'LLMProcessor', 'Article']
 
 class ContentAggregator:
     """Main class orchestrating the content aggregation workflow"""
@@ -210,10 +212,21 @@ class ContentAggregator:
         print(f"🎉 Done! Out of limit={self.config['max_articles']}, found {len(combined)} articles in total: {combined} ")
         return combined[:self.config['max_articles']]
 
-if __name__ == "__main__":
+# Add Click integration at the bottom
+@click.group()
+def main():
+    """Content Aggregator CLI"""
+    pass
+
+@main.command()
+def run():
+    """Run the aggregation pipeline"""
     try:
         aggregator = ContentAggregator()
         asyncio.run(aggregator.run_pipeline())
     except KeyboardInterrupt:
         print("\n🛑 Script interrupted by user")
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()
