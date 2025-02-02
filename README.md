@@ -11,7 +11,7 @@ A Python tool that aggregates and summarizes web content using AI. Features incl
 | RSS Feed Support       | Process content from RSS/Atom feeds                                         | ✅     |
 | PDF Processing         | Extract text content from PDF documents                                     | ✅     |
 | CI/CD Integration     | Automated daily summaries via GitHub Actions                               | ✅     |
-| Date Filtering         | Filter content by publication date                                         | ✅     |
+| Date Filtering         | Filter content by publication date                                         | Partially working - only works for rss sources for now    |
 | Dynamic Content        | Handle JavaScript-rendered pages using Playwright                          | ✅     |
 
 ## Setup
