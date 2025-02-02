@@ -173,7 +173,7 @@ class Scraper:
                     await page.wait_for_load_state(wait_until, 
                                                  timeout=self.timeouts['get'] * 1000)
                 except Exception as e:
-                    print(f"Timeout waiting for {url}: {str(e)}")
+                    print(f"Timeout waiting for {url} until {wait_until}: {str(e)}, but continuing ... since it's not a critical error and may be expected for certain websites due to say analytics or tracking scripts")
                 
                 return await page.content()
             finally:
