@@ -147,11 +147,14 @@ class ContentAggregator:
                 
             except Exception as e:
                 print(f"❌ Error processing {url} - {str(e)}")
-                # assume random error due to say rate limiting, wait and try again
-                time.sleep(self.config['retry_delay'])
+
                 if url not in already_retried:
+                    # assume random error due to say rate limiting, wait and try again
+                    print(f"🔄 Retrying {url} in {self.config['retry_delay']} seconds")
+                    time.sleep(self.config['retry_delay'])
                     already_retried.add(url)
                     articles.append(article)
+
             
         # Create the output directory if it doesn't exist
         output_dir = "outputs"
