@@ -160,7 +160,7 @@ class ContentAggregator:
         
         json_filename = f"{output_dir}/{file_prefix}.json"
         with open(json_filename, 'w') as f:
-            json.dump([article.dict() for article in results], f, indent=2)
+            json.dump(results, f, indent=2)
         
         # Generate executive summary
         print("Generating executive summary...")
