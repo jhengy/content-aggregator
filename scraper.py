@@ -151,6 +151,7 @@ class Scraper:
                   .replace('javascript:', '')
 
     # Private helper methods
+    # TODO: consider optimising this to use a single browser instance, avoid creating a new one for each request
     async def _get_page_html(self, url: str, wait_until: str = 'networkidle') -> str:
         """Get rendered HTML using Playwright with configurable timeouts"""
         async with async_playwright() as p:

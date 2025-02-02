@@ -80,6 +80,7 @@ class ContentAggregator:
         articles = await self.gather_articles()
         await self.process_articles(articles)
 
+    # TODO: consider recursively extracting articles with a max depth as some source_url may be an index for another index
     async def extract_articles(self, source_url, extract_type, extract_params={'css_selector': 'a[href]'}, limit=100):
         """Main workflow: Extract URLs -> Filter by date -> Process articles"""
         print(f"🚀 Starting extracting articles from {source_url}")
