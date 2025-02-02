@@ -1,9 +1,0 @@
-beautifulsoup4==4.12.2
-requests-html==0.10.0
-lxml[html_clean]==5.2.1
-python-dotenv==1.0.0
-feedparser==6.0.11
-google-generativeai==0.8.4
-PyPDF2==3.0.1
-playwright==1.49.1
-click==8.1.7
