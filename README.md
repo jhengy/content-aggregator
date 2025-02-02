@@ -1,45 +1,82 @@
 # Web Content Summarizer
 
-A Python tool that scrapes web articles and generates summaries using the Generative AI.
+A Python tool that aggregates and summarizes web content using AI. Features include:
+
+## Features
+
+| Feature                | Description                                                                 | Status |
+|------------------------|-----------------------------------------------------------------------------|--------|
+| Web Scraping           | Extract articles from websites and blogs                                    | ✅     |
+| AI Summarization       | Generate concise summaries using Gemini models                             | ✅     |
+| RSS Feed Support       | Process content from RSS/Atom feeds                                         | ✅     |
+| PDF Processing         | Extract text content from PDF documents                                     | ✅     |
+| CI/CD Integration     | Automated daily summaries via GitHub Actions                               | ✅     |
+| Date Filtering         | Filter content by publication date                                         | ✅     |
+| Dynamic Content        | Handle JavaScript-rendered pages using Playwright                          | ✅     |
 
 ## Setup
 
-1. Clone the repository
-2. Create a virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -e . # install package in editable mode with dependencies
-   playwright install chromium
-   ```
-4. Configure environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` with:
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   GEMINI_MODEL_SUMMARIZE=gemini-1.5-pro-latest
-   GEMINI_MODEL_DATE_EXTRACT=gemini-1.5-pro-latest
-   ```
+### Installation
+```bash
+# Clone repository
+git clone https://github.com/yourusername/content-aggregator.git
+cd content-aggregator
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install with dependencies
+pip install -e .
+playwright install chromium
+playwright install-deps
+```
+
+### Configuration
+1. Create `.env` file:
+    ```bash
+    cp .env.example .env
+    ```
+2. Edit `.env` with your Gemini API details:
+    ```env
+    GEMINI_API_KEY=your_api_key_here
+    GEMINI_MODEL_SUMMARIZE=gemini-2.0-flash-exp
+    GEMINI_MODEL_DATE_EXTRACT=gemini-2.0-flash-exp
+    ```
 
 ## Usage
 
-### Local Execution
+### Basic Usage
 ```bash
-# generate issue
+# Run aggregator and generate issue
 scripts/run.sh
 ```
 
+### CLI Commands
+| Command                | Description                                 | Example                          |
+|------------------------|---------------------------------------------|----------------------------------|
+| `run`                 | Default aggregation process                | `content-aggregator run`         |
+
+### Testing
+```bash
+# Install with development dependencies
+pip install -e '.[dev]'
+
+# Run all tests
+pytest tests/ -v -s
+
+# Generate coverage report
+pytest --cov=content_aggregator --cov-report=html -s
+```
+
 ### Automated Daily Summaries
-The system includes GitHub Actions configured to:
-- Run daily at 08:00 UTC
-- Process up to 5 articles
-- Create GitHub issues with summaries
-- Store results as workflow artifacts
+[![CI](https://github.com/jhengy/content-aggregator/actions/workflows/run.yml/badge.svg)](https://github.com/jhengy/content-aggregator/issues)
+
+The GitHub Actions workflow:
+- Runs daily (off-peak time)
+- Processes configured content sources
+- Creates GitHub issues with summaries
+- Stores JSON results and summaries as artifacts
 
 Output files will be created in:
 - `outputs/results_*.json`: Full results in JSON format
@@ -121,19 +158,3 @@ For GitHub Actions execution, ensure these repository settings:
   - summarization and extraction from web url, skip web scraping content before passing to llm
     - to what extent can ai model successfully extract content and summarize it based on the url? Signal to noise ratio
 
-## For Developers
-
-### Installation
-```bash
-# Install with development dependencies
-pip install -e '.[dev]'
-```
-
-### Running Tests
-```bash
-# Basic tests
-pytest tests/ -v -s
-
-# With coverage report
-pytest --cov=content_aggregator --cov-report=html -s
-```
