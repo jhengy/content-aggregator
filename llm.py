@@ -3,26 +3,27 @@ from datetime import datetime
 import asyncio
 from gemini_api import GeminiAPI
 import re
+from typing import Dict, List, Optional
+
 # Load environment variables
 load_dotenv()
-gemini = GeminiAPI()
 
-UNKNOWN = ""
-
-async def summarize_post(text: str) -> dict:
-    """Handle empty content gracefully"""
-    if not text.strip():
-        return {
-            "tags": UNKNOWN,
-            "date": UNKNOWN,
-            "summary": "empty content"
-        }
-        
-    # Add null check before slicing
-    truncated = text[:15000] if text else ""
-    prompt = f"""Analyze this article...{truncated}"""
+class LLMProcessor:
+    """Handles all LLM processing tasks including summarization and date extraction"""
     
-    prompt = """You are an AI assistant specialized in summarizing and extracting metadata from articles. 
+    UNKNOWN = ""
+    
+    def __init__(self):
+        self.gemini = GeminiAPI()
+
+    async def summarize_post(self, text: str) -> Dict[str, str]:
+        """Process individual post with error handling"""
+        if not text.strip():
+            return self._empty_response()
+            
+        truncated = text[:15000] if text else ""
+    
+        prompt = """You are an AI assistant specialized in summarizing and extracting metadata from articles. 
 Your task is to summarize the article and extract the publication date.
 Instructions:
 1. Carefully read the entire blog text provided.
@@ -39,80 +40,87 @@ Instructions:
 
 Article text:
 {text}""".format(text=truncated)
+                    
+        try:
+            response = await self.gemini.generate_content(
+                model_key='summarize',
+                prompt=prompt,
+                temperature=0.1
+            )
+            return self.parse_response(response)
+        except Exception as e:
+            print(f"Summarization error: {str(e)}")
+            return self._empty_response()
 
-    try:
-        response = await gemini.generate_content(
-            model_key='summarize',
-            prompt=prompt,
-            temperature=0.1
-        )
+    def parse_response(self, response: str) -> dict:
+        """Parse the XML-like response format"""
+        return {
+            "tags": self.extract_tag(response, "tags"),
+            "date": self.extract_tag(response, "date"),
+            "author": self.extract_tag(response, "author"),
+            "title": self.extract_tag(response, "title"),
+            "summary": self.extract_tag(response, "summary")
+        }
+
+    def extract_tag(self, text: str, tag: str) -> str:
+        match = re.search(f'<{tag}>(.*?)</{tag}>', text, re.DOTALL)
+        return match.group(1).strip() if match else self.UNKNOWN
+
+    async def summarize_all(self, summaries: list) -> str:
+        """Generate executive summary from multiple summaries"""
+        if len(summaries) == 0:
+            return ""
         
-        return parse_response(response)
-    except Exception as e:
-        print(f"Summarization error: {str(e)}")
-        raise e
+        combined = "\n".join(summaries)
+        prompt = """Generate an executive summary under 500 words from these key points:
+        Text to analyze:
+        {text}
+        
+        Rules:
+        1. Organize into logical paragraphs and include important points
+        2. Use markdown for formatting but do not include headers
+        3. Add a section below for famous quotes related to the summaries
+        4. Generate diagrams for the summaries in mermaid, highlighting interaction between topics
+        """.format(text=combined)
 
-def parse_response(response: str) -> dict:
-    """Parse the XML-like response format"""
-    return {
-        "tags": extract_tag(response, "tags"),
-        "date": extract_tag(response, "date"),
-        "author": extract_tag(response, "author"),
-        "title": extract_tag(response, "title"),
-        "summary": extract_tag(response, "summary")
-    }
+        try:
+            return await self.gemini.generate_content(
+                model_key='summarize',
+                prompt=prompt,
+                temperature=0.3
+            )
+        except Exception as e:
+            print(f"Summary aggregation failed: {str(e)}")
+            return "\n".join(summaries)
 
-def extract_tag(text: str, tag: str) -> str:
-    match = re.search(f'<{tag}>(.*?)</{tag}>', text, re.DOTALL)
-    return match.group(1).strip() if match else UNKNOWN
-
-async def summarize_all(summaries: list) -> str:
-    """Generate executive summary from multiple summaries"""
-    if len(summaries) == 0:
-        return ""
-    
-    combined = "\n".join(summaries)
-    prompt = """Generate an executive summary under 500 words from these key points:
-    Text to analyze:
-    {text}
-    
-    Rules:
-    1. Organize into logical paragraphs and include important points
-    2. Use markdown for formatting but do not include headers
-    3. Add a section below for famous quotes related to the summaries
-    4. Generate diagrams for the summaries in mermaid, highlighting interaction between topics
-    """.format(text=combined)
-
-    try:
-        return await gemini.generate_content(
-            model_key='summarize',
-            prompt=prompt,
-            temperature=0.3
-        )
-    except Exception as e:
-        print(f"Summary aggregation failed: {str(e)}")
-        return "\n".join(summaries)
-
-async def extract_date_llm(html_content: str) -> str:
-    """Extract publication date using original prompt structure"""
-    prompt = """Analyze this HTML and find the publication date in YYYY-MM-DD format.
+    async def extract_date_llm(self, html_content: str) -> str:
+        """Extract publication date using original prompt structure"""
+        prompt = """Analyze this HTML and find the publication date in YYYY-MM-DD format.
     Look for dates in article headers, meta tags, or visible date elements, exclude dates in the article body
     Return ONLY the date in ISO format within curly braces or 'null' if not found.
     
     HTML Content:
     {content}""".format(content=html_content[:8000])
 
-    try:
-        response = await gemini.generate_content(
-            model_key='date_extract',
-            prompt=prompt,
-            temperature=0.0,
-            max_tokens=100
-        )
-        return response.strip('{}').strip() if response else 'null'
-    except Exception as e:
-        print(f"Date extraction failed: {str(e)}")
-        return 'null'
+        try:
+            response = await self.gemini.generate_content(
+                model_key='date_extract',
+                prompt=prompt,
+                temperature=0.0,
+                max_tokens=100
+            )
+            return response.strip('{}').strip() if response else 'null'
+        except Exception as e:
+            print(f"Date extraction failed: {str(e)}")
+            return 'null'
+
+    def _empty_response(self) -> dict:
+        """Return a default response for empty content"""
+        return {
+            "tags": self.UNKNOWN,
+            "date": self.UNKNOWN,
+            "summary": "empty content"
+        }
 
 async def main():
    
@@ -136,25 +144,25 @@ Learn More
 Undo
 Last week, the publication
 relayed
-the experience of one of Heise.de’s readers, who said he had bought a couple of 14TB Seagate Exos HDDs that seemed a little strange. The drives had some minor signs of wear on the outside, but after a quick look at the SMART stats, everything appeared normal. Later, though, the reader did a more thorough Field Accessible Reliability Metrics (FARM) test and discovered that one drive had already been used for 10,000 hours, and the other 15,000 hours.
+the experience of one of Heise.de's readers, who said he had bought a couple of 14TB Seagate Exos HDDs that seemed a little strange. The drives had some minor signs of wear on the outside, but after a quick look at the SMART stats, everything appeared normal. Later, though, the reader did a more thorough Field Accessible Reliability Metrics (FARM) test and discovered that one drive had already been used for 10,000 hours, and the other 15,000 hours.
 LATEST VIDEOS FROM tomshardware
 Naturally, he returned the drives to the store he bought them from, an official Seagate retailer, and decided to replace them with two 16TB Exos HDDs purchased from a different store. These drives also turned out to be heavily used: 22,000 hours logged on each one.
 Advertisement
 Although both HDD sellers, neither of which Heise.de identified, claimed the Exos drives were simply brand-new retail models, Seagate told the publication that all four drives were actually OEM models. This meant that the normal five-year warranty did not apply like it would to typical drives bought at retail.
-The initial retailer eventually stopped selling the 14TB and 16TB HDDs at some point and even canceled an order that Heise.de had anonymously placed. According to the report, Seagate is looking into how this happened, especially as one of the retailers has the storage corporation’s endorsement as an official retailer.
+The initial retailer eventually stopped selling the 14TB and 16TB HDDs at some point and even canceled an order that Heise.de had anonymously placed. According to the report, Seagate is looking into how this happened, especially as one of the retailers has the storage corporation's endorsement as an official retailer.
 Stay On the Cutting Edge: Get the Tom's Hardware Newsletter
 Get Tom's Hardware's best news and in-depth reviews, straight to your inbox.
 After this report was published, the floodgates opened, and over fifty other Heise.de readers
 said
-they experienced the exact same thing after buying apparently new Seagate HDDs. While 50 is a small sample size, the issue might be widespread since they bought their drives at a dozen different retailers, some of which are on Seagate’s official “where-to-buy” list. Some of the impacted retailers are quite large, such as
+they experienced the exact same thing after buying apparently new Seagate HDDs. While 50 is a small sample size, the issue might be widespread since they bought their drives at a dozen different retailers, some of which are on Seagate's official "where-to-buy" list. Some of the impacted retailers are quite large, such as
 Amazon
 and Mindfactory.
 Most readers report having 16TB Exos drives, but others have the 12TB model, and a few have non-Exos HDDs ranging from 4 to 18TB. The time used ranges from 15,000 to 36,000 hours except for two 4TB HDDs, which were both used for about 50,000 hours. Heise.de checked a few drives at random to see when their warranties expired, and most of them were for 2026. Assuming a five-year warranty, that means they were first made and sold in 2021. All of the readers who reported receiving a used Seagate drive had bought it in the past few weeks, meaning the issue is relatively recent.
-It’s hard to imagine this is just a simple mixup, not just because so many retailers are apparently involved but also because they’ve all had their SMART stats reset, which would be very useful to someone trying to pretend a used drive is new. Although it’s not entirely clear if actual fraud is happening here, something has definitely gone very wrong.
-We reached out to Seagate for comment but haven’t received a reply yet.
+It's hard to imagine this is just a simple mixup, not just because so many retailers are apparently involved but also because they've all had their SMART stats reset, which would be very useful to someone trying to pretend a used drive is new. Although it's not entirely clear if actual fraud is happening here, something has definitely gone very wrong.
+We reached out to Seagate for comment but haven't received a reply yet.
 Seagate does have a direct relationship with used hard drives. Nearly a year ago, the company
 launched an official eBay store that sells refurbished drives. It
-also has a Hard Drive Circularity Program to find as many refurbish-worthy drives as possible, including Exos models. However, this store only sells in the US, so it doesn’t seem likely that it has anything to do with the current situation.
+also has a Hard Drive Circularity Program to find as many refurbish-worthy drives as possible, including Exos models. However, this store only sells in the US, so it doesn't seem likely that it has anything to do with the current situation.
 stuffs
 stuffs
 stuffs
@@ -162,13 +170,13 @@ Drop in a standard article here maybe?
 See more HDDs News
 See all comments (21)
 Matthew Connatser
-Matthew Connatser is a freelancing writer for Tom's Hardware US. He writes articles about CPUs, GPUs, SSDs, and computers in general.
+Matthew Connatser is a freelancing writer for Tom's Hardware US. He writes articles about CPUs, GPUs, SSDs, and computers in general.
 More about hdds
 Seagate responds to fraudulent hard drives scandal, says resellers should only buy from certified partners
 Seagate unveils 36TB HAMR hard drive: Mozaic 3+ extended
 Latest
 Intel cancels Falcon Shores GPU for AI workloads — Jaguar Shores to be successor
-See more latest  ►
+See more latest ►
 21 Comments
 Comment from the forums
 :sweatsmile:
@@ -217,11 +225,12 @@ View All 21 Comments
 Show more comments
 Most Popular 
     """
-    summary = await summarize_post(article)
+    processor = LLMProcessor()
+    summary = await processor.summarize_post(article)
     print(f"=== summary ===\n {summary} \n=== end of summary ===\n")
     
     results = ['Internet sleuths discovered that including expletives in Google search queries disables the AI-generated summaries, providing only standard search results. This workaround highlights user dissatisfaction with AI summaries, which are often inaccurate and potentially spread misinformation.  The method is a simple alternative to more complex techniques for disabling AI results.  This issue reflects broader concerns about the unchecked proliferation of AI tools across various platforms.', '', 'This is a list of recent posts related to game development, including news about Godot 4.4 beta 2,  open-source projects like a pixel art upscaler and a 2D cloth simulation, and articles on game design and industry trends.  Several posts highlight new releases and tools for game developers. The list also includes discussions on game development processes and performance optimization.']
-    executive_summary = await summarize_all(results)
+    executive_summary = await processor.summarize_all(results)
     print(f"=== executive_summary ===\n {executive_summary} \n=== end of executive_summary ===\n")
 
 if __name__ == "__main__":
