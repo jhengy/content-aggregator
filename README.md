@@ -96,3 +96,17 @@ For GitHub Actions execution, ensure these repository settings:
   - huggings face serverless inference api
     - https://huggingface.co/docs/api-inference/en/rate-limits
      - Signed-up Users	1,000 requests per day
+
+
+## TODO
+- model dependent features
+  - input
+    - accept image
+    - accept wide range of file types
+      - accept video
+  - output
+    - generation
+      - visualizations
+    - linkages to something outside the article
+  - summarization and extraction from web url, skip web scraping content before passing to llm
+    - to what extent can ai model successfully extract content and summarize it based on the url? Signal to noise ratio
