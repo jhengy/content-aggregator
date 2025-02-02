@@ -14,6 +14,7 @@ class GeminiAPI:
     
     """Client for interacting with Gemini API with model management"""
     def __init__(self):
+        self._validate_env_vars()
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
         self.models: Dict[str, genai.GenerativeModel] = {
             'summarize': genai.GenerativeModel(os.getenv('GEMINI_MODEL_SUMMARIZE')),
@@ -61,3 +62,17 @@ class GeminiAPI:
         except Exception as e:
             print(f"Error parsing {retry_after_str} - {str(e)}")
             return self.RETRY_AFTER_DEFAULT
+
+    def _validate_env_vars(self):
+        """Validate required environment variables"""
+        required_vars = [
+            'GEMINI_API_KEY',
+            'GEMINI_MODEL_SUMMARIZE',
+            'GEMINI_MODEL_DATE_EXTRACT'
+        ]
+        missing = [var for var in required_vars if not os.getenv(var)]
+        if missing:
+            raise ValueError(
+                f"Missing required Gemini API environment variables: {', '.join(missing)}. "
+                "Please check your .env configuration."
+            )
