@@ -60,13 +60,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          FILE_NAME="issue.md"
-          ./scripts/create_issue_body.sh $FILE_NAME
-          cat $FILE_NAME
+          SUMMARY_FILE_NAME="summary.md"
+          ./scripts/md_executive_summary.sh $SUMMARY_FILE_NAME
+          cat $SUMMARY_FILE_NAME
           
-          # Create issue using GitHub CLI
-          gh issue create \
+          ISSUE_URL=$(gh issue create \
             --title "Daily Content Summary $(date +'%Y-%m-%d')" \
-            --body-file $FILE_NAME \
-            --label automated
+            --body-file $SUMMARY_FILE_NAME \
+            --label automated)
+          ISSUE_NUMBER=$(echo $ISSUE_URL | grep -oP '(?<=issues/)\d+$')
+          echo "Created issue number: $ISSUE_NUMBER from $ISSUE_URL"
+
+          # Add articles processed as comment
+          ARTICLES_FILE_NAME="articles_processed.md"
+          ./scripts/md_processed_articles.sh $ARTICLES_FILE_NAME
+          cat $ARTICLES_FILE_NAME
+          gh issue comment "$ISSUE_NUMBER" --body-file "$ARTICLES_FILE_NAME"
 
