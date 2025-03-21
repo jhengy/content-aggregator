@@ -34,6 +34,10 @@ class ContentAggregator:
                     'extract_type': 'rss',
                 },
                 {
+                    'source_url': "https://hellointerview.substack.com/feed",
+                    'extract_type': 'rss',
+                },        
+                {
                     'source_url': "https://architecturenotes.co/feed",
                     'extract_type': 'rss',
                 },
