@@ -30,6 +30,11 @@ class ContentAggregator:
                     'extract_params': {'css_selector': 'a[href].Story_link'},
                 },
                 {
+                    'source_url': "https://www.hillelwayne.com/",
+                    'extract_type': 'index',
+                    'extract_params': {'css_selector': '#recent-posts li:nth-child(1) a'},
+                },
+                {
                     'source_url': "https://newsletter.pragmaticengineer.com/feed",
                     'extract_type': 'rss',
                 },
@@ -76,7 +81,15 @@ class ContentAggregator:
                 {
                     'source_url': "https://www.techmeme.com/feed.xml",
                     'extract_type': 'rss',
-                }
+                },
+                {
+                    'source_url': "https://brooker.co.za/blog/rss.xml",
+                    'extract_type': 'rss',
+                },
+                {
+                    'source_url': "https://feeds.feedburner.com/blogspot/RLXA",
+                    'extract_type': 'rss',
+                },
             ],
             'max_articles': int(os.getenv('ARTICLES_LIMIT', 500)),
             'retry_delay_seconds': 15
