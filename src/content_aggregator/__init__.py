@@ -95,6 +95,10 @@ class ContentAggregator:
                     'extract_type': 'rss',
                 },
                 {
+                    'source_url': "https://world.hey.com/jason/feed.atom",
+                    'extract_type': 'rss',
+                },
+                {
                     'source_url': "https://www.writesoftwarewell.com/rss",
                     'extract_type': 'rss',
                 },
