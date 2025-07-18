@@ -90,6 +90,10 @@ class ContentAggregator:
                     'source_url': "https://feeds.feedburner.com/blogspot/RLXA",
                     'extract_type': 'rss',
                 },
+                {
+                    'source_url': "https://world.hey.com/dhh/feed.atom",
+                    'extract_type': 'rss',
+                },
             ],
             'max_articles': int(os.getenv('ARTICLES_LIMIT', 500)),
             'retry_delay_seconds': 15
