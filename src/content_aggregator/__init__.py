@@ -109,8 +109,9 @@ class ContentAggregator:
 
     async def run_pipeline(self) -> None:
         """Main execution pipeline"""
-        articles = await self.gather_articles()
-        await self.process_articles(articles)
+        async with self.scraper:
+            articles = await self.gather_articles()
+            await self.process_articles(articles)
 
     # TODO: consider recursively extracting articles with a max depth as some source_url may be an index for another index
     async def extract_articles(self, source_url, extract_type, extract_params={'css_selector': 'a[href]'}, limit=100):
@@ -136,7 +137,7 @@ class ContentAggregator:
 
     async def process_articles(self, articles: List[Article]) -> List[Article]:
         results = []
-        already_retried = set()
+        retry_count = {}  # Keep track of retries per URL
         while len(articles) > 0:
             article = articles.pop(0)
             url = article.get('url')
@@ -159,8 +160,8 @@ class ContentAggregator:
                 summary = await self.llm.summarize_post(article_content, url)
                 if summary.get('summary') is None:
                     print(f"❌ Error processing {url} - returned empty summary")
-                    if url not in already_retried:
-                        already_retried.add(url)
+                    if retry_count.get(url, 0) < 3:
+                        retry_count[url] = retry_count.get(url, 0) + 1
                         articles.append(article)
                         continue
                 else:
@@ -177,17 +178,18 @@ class ContentAggregator:
                 
                 print(f"✅ Successfully processed: {url}")
                 
-            # TODO: exponential backoff in retry?
             except RateLimitExceededError as e:
-                if url not in already_retried:
-                    retry_after = e.retry_after or self.config['retry_delay_seconds']
-                    print(f"🔄 Retrying {url} in {retry_after} seconds")
-                    time.sleep(retry_after)
+                if retry_count.get(url, 0) < 3:
+                    retry_count[url] = retry_count.get(url, 0) + 1
+                    # Wait longer each time we retry
+                    base_delay = e.retry_after or self.config['retry_delay_seconds']
+                    exponential_delay = base_delay * (2 ** (retry_count[url] - 1))
+                    print(f"🔄 Retrying {url} in {exponential_delay} seconds (attempt {retry_count[url]}/3)")
+                    time.sleep(exponential_delay)
                     
-                    already_retried.add(url)
                     articles.append(article)
                 else:
-                    print(f"⚠️ Already retried {url} - skipping")
+                    print(f"⚠️ Max retries exceeded for {url} - skipping")
                     continue
                 
             except Exception as e:
@@ -230,18 +232,31 @@ class ContentAggregator:
             print("⚠️ No articles found from any sources")
             return []
       
-        # distribute the limit across all sources by the proportion of the number of articles found
-        # TODO: there's a chance that the total number exceeds the limit, need to handle this
-        weighted_results = [result[:(int(len(result) / len(flattened_results) * self.config['max_articles']) or 1)] for result in results]
+        # Distribute articles proportionally across sources
+        total_articles = sum(len(result) for result in results)
+        if total_articles == 0:
+            return []
+            
+        # Each source gets articles based on its proportion, minimum 1 if it has any
+        weighted_results = []
+        for result in results:
+            if len(result) == 0:
+                weighted_results.append([])
+            else:
+                proportional_limit = max(1, int(len(result) / total_articles * self.config['max_articles']))
+                weighted_results.append(result[:proportional_limit])
 
-        # Combine and deduplicate
+        # Combine and remove duplicates
         combined = deduplicate(
             [item for articles in weighted_results for item in articles],
             key_func=lambda x: x.get('url')
         )
         
-        print(f"🎉 Done! Out of limit={self.config['max_articles']}, found {len(combined)} articles in total: {combined} ")
-        return combined[:self.config['max_articles']]
+        # Don't exceed the total limit
+        final_results = combined[:self.config['max_articles']]
+        
+        print(f"🎉 Done! Out of limit={self.config['max_articles']}, found {len(final_results)} articles in total")
+        return final_results
 
 # Add Click integration at the bottom
 @click.group()
