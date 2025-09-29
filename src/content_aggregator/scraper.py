@@ -37,6 +37,45 @@ class Scraper:
             'render_sleep': 3,
             'render_retries': 3
         }
+        # Browser instance management
+        self._browser = None
+        self._context = None
+        self._playwright = None
+
+    async def _ensure_browser(self):
+        """Initialize browser if not already done"""
+        if self._browser is None:
+            self._playwright = await async_playwright().start()
+            self._browser = await self._playwright.chromium.launch(
+                headless=True,
+                args=['--disable-blink-features=AutomationControlled']
+            )
+            self._context = await self._browser.new_context(
+                user_agent=self.headers['User-Agent'],
+                viewport={'width': 1920, 'height': 1080},
+                java_script_enabled=True
+            )
+
+    async def _close_browser(self):
+        """Clean up browser resources"""
+        if self._context:
+            await self._context.close()
+            self._context = None
+        if self._browser:
+            await self._browser.close()
+            self._browser = None
+        if self._playwright:
+            await self._playwright.stop()
+            self._playwright = None
+
+    async def __aenter__(self):
+        """Context manager entry"""
+        await self._ensure_browser()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        await self._close_browser()
 
     # Public interface methods
     async def extract_from_index(
@@ -151,33 +190,24 @@ class Scraper:
                   .replace('javascript:', '')
 
     # Private helper methods
-    # TODO: consider optimising this to use a single browser instance, avoid creating a new one for each request
     async def _get_page_html(self, url: str, wait_until: str = 'networkidle') -> str:
         """Get rendered HTML using Playwright with configurable timeouts"""
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                headless=True,
-                args=['--disable-blink-features=AutomationControlled']
-            )
+        await self._ensure_browser()
+        
+        page = await self._context.new_page()
+        try:
+            await page.goto(url, wait_until="domcontentloaded", 
+                          timeout=self.timeouts['get'] * 1000)
+            
             try:
-                context = await browser.new_context(
-                    user_agent=self.headers['User-Agent'],
-                    viewport={'width': 1920, 'height': 1080},
-                    java_script_enabled=True
-                )
-                page = await context.new_page()
-                await page.goto(url, wait_until="domcontentloaded", 
-                              timeout=self.timeouts['get'] * 1000)
-                
-                try:
-                    await page.wait_for_load_state(wait_until, 
-                                                 timeout=self.timeouts['get'] * 1000)
-                except Exception as e:
-                    print(f"Timeout waiting for {url} until {wait_until}: {str(e)}, but continuing ... since it's not a critical error and may be expected for certain websites due to say analytics or tracking scripts")
-                
-                return await page.content()
-            finally:
-                await browser.close()
+                await page.wait_for_load_state(wait_until, 
+                                             timeout=self.timeouts['get'] * 1000)
+            except Exception as e:
+                print(f"Timeout waiting for {url} until {wait_until}: {str(e)}, but continuing ... since it's not a critical error and may be expected for certain websites due to say analytics or tracking scripts")
+            
+            return await page.content()
+        finally:
+            await page.close()
 
     async def _process_pdf(self, url: str) -> str:
         """Handle PDF content extraction"""
