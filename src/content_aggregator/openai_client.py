@@ -19,7 +19,11 @@ class OpenAIClient:
             base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         )
         self.models = self._load_models()
-        print(f"OpenAIClient#self.models: {str(self.models)}")
+    
+    def _log_debug(self, message: str) -> None:
+        """Helper for debug logging"""
+        if os.getenv('DEBUG') == 'true':
+            print(message)
     
     def _load_models(self) -> Dict[str, str]:
         default_model = os.getenv("OPENAI_MODEL", "")
@@ -63,6 +67,8 @@ class OpenAIClient:
         if not model:
             raise ValueError(f"No model configured for {model_key}")
         
+        self._log_debug(f"Generating content with model: {model}")
+        
         try:
             response = await self.client.chat.completions.create(
                 model=model,
@@ -71,6 +77,7 @@ class OpenAIClient:
                 max_tokens=max_tokens
             )
             content = response.choices[0].message.content
+            self._log_debug(f"Response: {content}")
             return content if content is not None else ""
         except openai.RateLimitError as e:
             retry_after = self._parse_retry_after(
