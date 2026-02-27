@@ -21,7 +21,7 @@ class LLMProcessor:
     async def summarize_post(self, text: str, source_url: str) -> Article:
         """Process individual post with error handling"""
         if not text.strip():
-            return self._empty_response(source_url)
+            return None
             
         truncated = text[:15000] if text else ""
     
@@ -43,16 +43,12 @@ Instructions:
 Article text:
 {text}""".format(text=truncated)
                     
-        try:
-            response = await self.gemini.generate_content(
-                model_key='summarize',
-                prompt=prompt,
-                temperature=0.1
-            )
-            return self._parse_response(response, source_url)
-        except Exception as e:
-            print(f"Summarization error: {str(e)}")
-            return self._empty_response(source_url)
+        response = await self.gemini.generate_content(
+            model_key='summarize',
+            prompt=prompt,
+            temperature=0.1
+        )
+        return self._parse_response(response, source_url)
 
     async def summarize_all(self, summaries: list) -> str:
         """Generate executive summary from multiple summaries"""
@@ -134,19 +130,6 @@ Article text:
     def _extract_tag(self, text: str, tag: str) -> str:
         match = re.search(f'<{tag}>(.*?)</{tag}>', text, re.DOTALL)
         return match.group(1).strip() if match else self.UNKNOWN
-
-    def _empty_response(self, source_url: str) -> Article:
-        """Return a default response for empty content"""
-        return Article(
-            url=source_url,
-            title=self.UNKNOWN,
-            author=self.UNKNOWN,
-            publish_at=None,
-            tags=self.UNKNOWN,
-            date=self.UNKNOWN,
-            summary=None,
-            timestamp=datetime.now().isoformat()
-        )
 
 async def main():
    

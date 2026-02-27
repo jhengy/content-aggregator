@@ -156,14 +156,14 @@ class ContentAggregator:
                     
                 # Generate summary
                 print("Generating summary...")
-                summary = await self.llm.summarize_post(article_content, url)
-                if summary.get('summary') is None:
-                    print(f"❌ Error processing {url} - returned empty summary")
-                    if url not in already_retried:
-                        already_retried.add(url)
-                        articles.append(article)
-                        continue
-                else:
+                try:
+                    summary = await self.llm.summarize_post(article_content, url)
+                    if summary.get('summary') is None:
+                        print(f"❌ Error processing {url} - returned empty summary")
+                        if url not in already_retried:
+                            already_retried.add(url)
+                            articles.append(article)
+                            continue
                     results.append(Article(
                         url=url,
                         tags=summary.get('tags'),
@@ -174,8 +174,21 @@ class ContentAggregator:
                         publish_at=article.get('publish_at'),
                         timestamp=datetime.now().isoformat()
                     ))
-                
-                print(f"✅ Successfully processed: {url}")
+                    print(f"✅ Successfully processed: {url}")
+                except RateLimitExceededError as e:
+                    if url not in already_retried:
+                        retry_after = e.retry_after or self.config['retry_delay_seconds']
+                        print(f"🔄 Retrying {url} in {retry_after} seconds")
+                        time.sleep(retry_after)
+                        
+                        already_retried.add(url)
+                        articles.append(article)
+                    else:
+                        print(f"⚠️ Already retried {url} - skipping")
+                        continue
+                except Exception as e:
+                    print(f"❌ Error processing {url} - {str(e)}")
+                    continue
                 
             # TODO: exponential backoff in retry?
             except RateLimitExceededError as e:
