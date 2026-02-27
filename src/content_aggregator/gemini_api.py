@@ -17,7 +17,8 @@ class GeminiAPI:
         self._validate_env_vars()
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
         self.models: Dict[str, genai.GenerativeModel] = {
-            'summarize': genai.GenerativeModel(os.getenv('GEMINI_MODEL_SUMMARIZE')),
+            'summarize_post': genai.GenerativeModel(os.getenv('GEMINI_MODEL_SUMMARIZE_POST')),
+            'summarize_all': genai.GenerativeModel(os.getenv('GEMINI_MODEL_SUMMARIZE_ALL')),
             'date_extract': genai.GenerativeModel(os.getenv('GEMINI_MODEL_DATE_EXTRACT'))
         }
     
@@ -67,7 +68,8 @@ class GeminiAPI:
         """Validate required environment variables"""
         required_vars = [
             'GEMINI_API_KEY',
-            'GEMINI_MODEL_SUMMARIZE',
+            'GEMINI_MODEL_SUMMARIZE_POST',
+            'GEMINI_MODEL_SUMMARIZE_ALL',
             'GEMINI_MODEL_DATE_EXTRACT'
         ]
         missing = [var for var in required_vars if not os.getenv(var)]

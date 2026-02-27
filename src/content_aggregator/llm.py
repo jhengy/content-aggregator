@@ -44,7 +44,7 @@ Article text:
 {text}""".format(text=truncated)
                     
         response = await self.gemini.generate_content(
-            model_key='summarize',
+            model_key='summarize_post',
             prompt=prompt,
             temperature=0.1
         )
@@ -78,7 +78,7 @@ Article text:
 
         try:
             return await self.gemini.generate_content(
-                model_key='summarize',
+                model_key='summarize_all',
                 prompt=prompt,
                 temperature=0.3
             )
