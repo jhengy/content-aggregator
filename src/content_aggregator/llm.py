@@ -127,7 +127,7 @@ Article text:
             publish_at=None,  # Will be populated during processing
             tags=tags_match.group(1) if tags_match else self.UNKNOWN,
             date=date_match.group(1) if date_match else self.UNKNOWN,
-            summary=summary_match.group(1) if summary_match else 'No summary generated',
+            summary=summary_match.group(1).strip() if summary_match else None,
             timestamp=datetime.now().isoformat()
         )
 
@@ -144,7 +144,7 @@ Article text:
             publish_at=None,
             tags=self.UNKNOWN,
             date=self.UNKNOWN,
-            summary="empty content",
+            summary=None,
             timestamp=datetime.now().isoformat()
         )
 

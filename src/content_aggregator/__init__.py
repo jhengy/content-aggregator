@@ -205,7 +205,8 @@ class ContentAggregator:
         
         # Generate executive summary
         print("Generating executive summary...")
-        executive_summary = await self.llm.summarize_all([x.get('summary') for x in results])
+        valid_summaries = [s for s in (x.get('summary') for x in results) if s]
+        executive_summary = await self.llm.summarize_all(valid_summaries)
         summary_filename = f"{output_dir}/{file_prefix}_summary.txt"
         with open(summary_filename, 'w') as f:
             f.write(executive_summary)
