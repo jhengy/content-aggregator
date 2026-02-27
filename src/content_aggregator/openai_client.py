@@ -2,6 +2,7 @@ import os
 import openai
 from typing import Dict, Optional
 from dotenv import load_dotenv
+from .exceptions import RateLimitExceededError
 
 
 load_dotenv()
@@ -9,6 +10,7 @@ load_dotenv()
 
 class OpenAIClient:
     VALID_MODEL_KEYS = ['summarize_post', 'summarize_all', 'date_extract']
+    RETRY_AFTER_DEFAULT = 15
     
     def __init__(self):
         self._validate_env_vars()
@@ -68,7 +70,26 @@ class OpenAIClient:
                 temperature=temperature,
                 max_tokens=max_tokens
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            return content if content is not None else ""
+        except openai.RateLimitError as e:
+            retry_after = self._parse_retry_after(
+                e.response.headers.get('Retry-After')
+            ) if hasattr(e, 'response') and e.response else self.RETRY_AFTER_DEFAULT
+            raise RateLimitExceededError(retry_after=retry_after) from e
         except Exception as e:
+            if getattr(e, 'status_code', None) == 429:
+                retry_after = self._parse_retry_after(
+                    getattr(e, 'headers', {}).get('Retry-After')
+                )
+                raise RateLimitExceededError(retry_after=retry_after) from e
             print(f"OpenAI-compatible API error: {str(e)}")
             raise
+
+    def _parse_retry_after(self, retry_after_str: Optional[str]) -> int:
+        if retry_after_str is None:
+            return self.RETRY_AFTER_DEFAULT
+        try:
+            return int(retry_after_str)
+        except (ValueError, TypeError):
+            return self.RETRY_AFTER_DEFAULT
