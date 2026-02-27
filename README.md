@@ -7,12 +7,13 @@ A Python tool that aggregates and summarizes web content using AI. Features incl
 | Feature                | Description                                                                 | Status |
 |------------------------|-----------------------------------------------------------------------------|--------|
 | Web Scraping           | Extract articles from websites and blogs                                    | ✅     |
-| AI Summarization       | Generate concise summaries using Gemini models                             | ✅     |
+| AI Summarization       | Generate concise summaries using Gemini or OpenAI-compatible models        | ✅     |
 | RSS Feed Support       | Process content from RSS/Atom feeds                                         | ✅     |
 | PDF Processing         | Extract text content from PDF documents                                     | ✅     |
 | CI/CD Integration     | Automated daily summaries via GitHub Actions                               | ✅     |
 | Date Filtering         | Filter content by publication date                                         | Partially working - only works for rss sources for now    |
 | Dynamic Content        | Handle JavaScript-rendered pages using Playwright                          | ✅     |
+| Multi-Provider LLM     | Support for Gemini, OpenAI, NVIDIA NIM, Ollama, and other OpenAI-compatible APIs | ✅     |
 
 ## Setup
 
@@ -37,12 +38,40 @@ playwright install-deps
     ```bash
     cp .env.example .env
     ```
-2. Edit `.env` with your Gemini API details:
+2. Configure the LLM provider (defaults to OpenAI-compatible):
     ```env
-    GEMINI_API_KEY=your_api_key_here
-    GEMINI_MODEL_SUMMARIZE=gemini-2.0-flash-exp
-    GEMINI_MODEL_DATE_EXTRACT=gemini-2.0-flash-exp
+    # Provider selection: 'openai' (default) or 'gemini'
+    LLM_PROVIDER=openai
     ```
+
+#### Option A: OpenAI-Compatible API (Default)
+Supports NVIDIA NIM, Ollama, LM Studio, LiteLLM, OpenAI, Azure OpenAI, and any OpenAI-compatible API.
+```env
+# Required
+OPENAI_API_KEY=your_api_key_here
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o
+
+# Optional: Task-specific models (fallback to OPENAI_MODEL if not set)
+OPENAI_MODEL_SUMMARIZE_POST=
+OPENAI_MODEL_SUMMARIZE_ALL=
+OPENAI_MODEL_DATE_EXTRACT=
+```
+
+#### Option B: Gemini API
+```env
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_api_key_here
+GEMINI_MODEL_SUMMARIZE_POST=gemini-2.0-flash-exp
+GEMINI_MODEL_SUMMARIZE_ALL=gemini-2.0-flash-exp
+GEMINI_MODEL_DATE_EXTRACT=gemini-2.0-flash-exp
+```
+
+#### Debug Mode
+Enable verbose logging for troubleshooting:
+```env
+DEBUG=true
+```
 
 ## Usage
 
@@ -91,9 +120,17 @@ For GitHub Actions execution, ensure these repository settings:
 1. Under Settings > Actions > General:
    - Workflow permissions: "Read and write permissions"
    - Check "Allow GitHub Actions to create and approve pull requests"
-2. Add these secrets:
+2. Add these secrets (depending on your LLM provider):
+
+### For OpenAI-Compatible API (default):
+   - OPENAI_API_KEY
+   - OPENAI_BASE_URL
+   - OPENAI_MODEL (or task-specific models)
+
+### For Gemini:
    - GEMINI_API_KEY
-   - GEMINI_MODEL_SUMMARIZE
+   - GEMINI_MODEL_SUMMARIZE_POST
+   - GEMINI_MODEL_SUMMARIZE_ALL
    - GEMINI_MODEL_DATE_EXTRACT
 
 ## Challenges
