@@ -104,7 +104,7 @@ class ContentAggregator:
                 },
             ],
             'max_articles': int(os.getenv('ARTICLES_LIMIT', 500)),
-            'retry_delay_seconds': 15
+            'retry_delay_seconds': 60
         }
 
     async def run_pipeline(self) -> None:
