@@ -1,7 +1,9 @@
 from dotenv import load_dotenv
 from datetime import datetime
 import asyncio
+import os
 from .gemini_api import GeminiAPI
+from .openai_client import OpenAIClient
 import re
 from typing import Dict, List, Optional
 from .models import Article
@@ -15,7 +17,14 @@ class LLMProcessor:
     UNKNOWN = ""
     
     def __init__(self):
-        self.gemini = GeminiAPI()
+        provider = os.getenv('LLM_PROVIDER', 'openai')
+        
+        if provider == 'gemini':
+            self.client = GeminiAPI()
+        elif provider == 'openai':
+            self.client = OpenAIClient()
+        else:
+            raise ValueError(f"Invalid LLM_PROVIDER: {provider}. Must be 'gemini' or 'openai'")
 
     # Public interface
     async def summarize_post(self, text: str, source_url: str) -> Article:
@@ -43,7 +52,7 @@ Instructions:
 Article text:
 {text}""".format(text=truncated)
                     
-        response = await self.gemini.generate_content(
+        response = await self.client.generate_content(
             model_key='summarize_post',
             prompt=prompt,
             temperature=0.1
@@ -77,7 +86,7 @@ Article text:
         """.format(text=combined)
 
         try:
-            return await self.gemini.generate_content(
+            return await self.client.generate_content(
                 model_key='summarize_all',
                 prompt=prompt,
                 temperature=0.3
@@ -96,7 +105,7 @@ Article text:
     {content}""".format(content=html_content[:8000])
 
         try:
-            response = await self.gemini.generate_content(
+            response = await self.client.generate_content(
                 model_key='date_extract',
                 prompt=prompt,
                 temperature=0.0,

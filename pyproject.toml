@@ -11,6 +11,7 @@ dependencies = [
     "python-dotenv==1.0.0",
     "feedparser==6.0.11",
     "google-generativeai==0.8.4",
+    "openai>=1.0",
     "pypdf==3.17.1",
     "playwright==1.49.1",
     "click==8.1.7"
