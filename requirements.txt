@@ -1,0 +1,13 @@
+requests>=2.25.0
+feedparser>=6.0.0
+praw>=7.0.0  # Reddit API
+beautifulsoup4>=4.9.0
+lxml>=4.6.0
+nltk>=3.6.0
+scikit-learn>=0.24.0
+networkx>=2.5
+PyYAML>=5.4.0
+python-dateutil>=2.8.0
+jinja2>=3.0.0
+smtplib  # standard library, but for completeness
+markdown>=3.3.0
