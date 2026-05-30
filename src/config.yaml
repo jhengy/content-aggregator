@@ -1,0 +1,184 @@
+# 📰 Daily Content Summary - Configuration
+# Production-grade YAML configuration for automated news fetching, summarization, and reporting.
+# Version: 2.1 | Pipeline: daily-content-summary
+
+# ------------------------------------------------------------------------------
+# Schema & Validation (refer to JSON Schema for formal validation)
+# ------------------------------------------------------------------------------
+$schema: "https://example.com/schemas/daily-summary-config-schema-v2.json"
+schema_version: "2.0"
+
+# ------------------------------------------------------------------------------
+# Security Notice: All secrets MUST be sourced from environment variables at
+# runtime. The placeholder patterns below (${VAR_NAME}) are validated against
+# the regex patterns in _validation_hints. No actual keys, tokens, or passwords
+# are stored in this file. Use a secrets manager or .env file in production.
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Validation Hints – Regex patterns for environment variables and config values.
+# These are used by the config loader to validate before execution.
+# ------------------------------------------------------------------------------
+_validation_hints:
+  ## Environment variable validation
+  env_vars:
+    NEWSAPI_KEY:
+      description: "API key for NewsAPI.org"
+      pattern: "^[a-f0-9]{32}$"
+      required: true
+    REDDIT_CLIENT_ID:
+      pattern: "^[A-Za-z0-9_-]{10,30}$"
+      required: true
+    REDDIT_CLIENT_SECRET:
+      pattern: "^[A-Za-z0-9_-]{20,50}$"
+      required: true
+    REDDIT_USERNAME:
+      pattern: "^[A-Za-z0-9_-]{3,20}$"
+      required: true
+    SMTP_SERVER:
+      pattern: "^smtp\\.[a-zA-Z0-9]+\\.[a-zA-Z]{2,}$"
+      required: false
+    SMTP_USERNAME:
+      pattern: "^[^@]+@[^@]+\\.[^@]+$"
+      required: false
+    SMTP_PASSWORD:
+      pattern: "^.{8,}$"
+      required: false
+  ## Config value patterns
+  config_values:
+    query_max_length: 500
+    source_name_pattern: "^[a-z_]+$"
+    language_code_pattern: "^(en|es|de|fr|it|pt|ja|zh)$"
+    http_url_pattern: "^https://[\\w.-]+(:\\d+)?(/.*)?$"
+    email_pattern: "^[^@]+@[^@]+\\.[^@]+$"
+    cron_pattern: "^(\\d+|\\*)(/\\d+)?(\\s(\\d+|\\*)(/\\d+)?){4}$"
+
+# ------------------------------------------------------------------------------
+# Anchor definitions – for DRY reuse within this file
+# ------------------------------------------------------------------------------
+x-env-ref: &env_ref "${ENV_PLACEHOLDER}"
+x-email-env: &email_env
+  smtp_server: "${SMTP_SERVER}"
+  smtp_username: "${SMTP_USERNAME}"
+  smtp_password: "${SMTP_PASSWORD}"
+
+# ------------------------------------------------------------------------------
+# API Keys and Credentials
+# All secrets sourced from environment variables; never hardcode.
+# ------------------------------------------------------------------------------
+api_keys:
+  newsapi: "${NEWSAPI_KEY}"               # Required: hex string, 32 chars
+  reddit_client_id: "${REDDIT_CLIENT_ID}"
+  reddit_client_secret: "${REDDIT_CLIENT_SECRET}"
+  reddit_user_agent: "DailySummary/1.0 (by /u/${REDDIT_USERNAME})"
+  # If SMTP is enabled, ensure SMTP_* variables are set; see output.email section
+
+# ------------------------------------------------------------------------------
+# Source Definitions
+# Each source specifies type, active status, and source-specific parameters.
+# Supported types: newsapi, reddit, rss, custom
+# ------------------------------------------------------------------------------
+sources:
+  - name: "tech_news"                    # Unique identifier; must match "^[a-z_]+$"
+    type: "newsapi"                      # One of: newsapi, reddit, rss, custom
+    active: true                         # Boolean; if false, source is skipped
+    params:
+      query: "artificial intelligence OR AI OR machine learning"   # Max 500 chars
+      sources: "techcrunch, the-verge, wired, arstechnica"       # Comma-separated; optional
+      language: "en"                     # ISO 639-1 code; allowed set
+      page_size: 20                      # Integer; 1-100
+      sort_by: "publishedAt"             # Allowed: publishedAt, relevancy, popularity
+
+  - name: "ai_subreddit"
+    type: "reddit"
+    active: true
+    params:
+      subreddit: "artificial"            # Must be public; case-insensitive
+      limit: 30                          # Integer; 1-100
+      time_filter: "day"                 # Allowed: hour, day, week, month, year, all
+      sort: "hot"                        # Allowed: hot, new, top, controversial
+
+  - name: "business_feed"
+    type: "rss"
+    active: true
+    params:
+      url: "https://feeds.bbci.co.uk/news/technology/rss.xml"   # Must be HTTPS
+      max_entries: 15                    # Integer; 1-50
+
+  - name: "custom_blog"
+    type: "rss"
+    active: false                        # Inactive – verify RSS URL validity periodically
+    params:
+      url: "https://openai.com/blog/rss.xml"
+      max_entries: 10
+
+# ------------------------------------------------------------------------------
+# Summarization Parameters
+# Extractive summarization using TF-IDF + TextRank.
+# ------------------------------------------------------------------------------
+summarization:
+  algorithm: "textrank"                  # Allowed: tfidf, textrank, hybrid
+  hybrid_weight: 0.5                     # Float 0.0-1.0; used if algorithm == hybrid
+  max_sentences_per_article: 3           # Integer >=1; truncates shorter articles
+  max_total_summary_sentences: 20        # Integer >=1; total across all articles
+  min_sentence_score: 0.1                # Float 0.0-1.0; lower = more inclusion
+  language: "english"                    # Supported languages
+  deduplication: true                    # Removes near-duplicate sentences via cosine similarity
+
+# ------------------------------------------------------------------------------
+# Output Configuration
+# Supported formats: markdown, html, both
+# ------------------------------------------------------------------------------
+output:
+  format: "markdown"                     # Allowed: markdown, html, both
+  markdown:
+    file_path: "./output/daily-summary-${DATE}.md"   # ${DATE} replaced at runtime (ISO 8601)
+    template: "templates/summary.md.j2"              # Optional Jinja2 template; must exist if set
+  html:
+    enabled: true                        # Boolean; if false, no HTML output
+    file_path: "./output/daily-summary-${DATE}.html"
+    css: "assets/email-style.css"        # Optional; path must exist or be ignored
+  email:
+    enabled: false                       # Boolean; if true, all SMTP_* vars must be set and validated
+    smtp_server: "${SMTP_SERVER}"        # Example: smtp.gmail.com
+    smtp_port: 587                       # Integer; common: 25, 465, 587
+    smtp_username: "${SMTP_USERNAME}"    # Valid email format
+    smtp_password: "${SMTP_PASSWORD}"    # Min 8 chars
+    from: "daily-summary@example.com"    # Must be a valid email
+    to:                                  # At least one recipient if enabled
+      - "admin@example.com"
+    subject: "Daily Content Summary - ${DATE}"
+
+# ------------------------------------------------------------------------------
+# Scheduling (for CRON or GitHub Actions trigger)
+# ------------------------------------------------------------------------------
+schedule:
+  cron_expression: "0 7 * * 1-5"        # Standard 5-field cron; weekdays at 07:00 UTC
+  timezone: "UTC"                        # IANA timezone (e.g., America/New_York)
+  max_retries: 3                         # Integer >=0; retry attempts on transient failure
+  retry_delay_seconds: 300               # Integer >=0; delay between retries (300s = 5 min)
+
+# ------------------------------------------------------------------------------
+# Logging and Debug
+# ------------------------------------------------------------------------------
+logging:
+  level: "INFO"                          # Allowed: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "./logs/summary.log"             # Path should be writable; directory must exist
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  # Optional: set LOG_CONSOLE=true environment variable to also log to stdout
+
+# ------------------------------------------------------------------------------
+# Metadata (for versioning and pipeline identification)
+# ------------------------------------------------------------------------------
+metadata:
+  version: "2.1.0"                       # Semantic version
+  pipeline_name: "daily-content-summary"
+  last_updated: "2025-04-15"              # Date of last review
+  maintainer: "operations-team"
+  changelog:
+    - version: "2.1.0"
+      date: "2025-04-15"
+      changes: "Added validation hints schema; improved regex patterns for env vars; completed metadata section."
+    - version: "2.0.0"
+      date: "2025-01-10"
+      changes: "Initial production version with multi-source support."
